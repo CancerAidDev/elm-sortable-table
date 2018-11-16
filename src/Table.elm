@@ -195,6 +195,7 @@ type alias Customizations data msg =
     , tfoot : Maybe (HtmlDetails msg)
     , tbodyAttrs : List (Attribute msg)
     , rowAttrs : data -> List (Attribute msg)
+    , tableOptions : List (Table.TableOption msg)
     }
 
 
@@ -218,6 +219,7 @@ defaultCustomizations =
     , tfoot = Nothing
     , tbodyAttrs = []
     , rowAttrs = simpleRowAttrs
+    , tableOptions = []
     }
 
 
@@ -266,14 +268,24 @@ simpleTheadHelp ( name, status, onClick ) =
         content
 
 
+nbsp : String
+nbsp =
+    " "
+
+
+icon : String -> String -> Html msg
+icon color symbol =
+    Html.span [ Attr.style [ ( "color", color ) ] ] [ Html.text (nbsp ++ symbol) ]
+
+
 darkGrey : String -> Html msg
 darkGrey symbol =
-    Html.span [ Attr.style [ ( "color", "#555" ) ] ] [ Html.text (" " ++ symbol) ]
+    icon "#555" symbol
 
 
 lightGrey : String -> Html msg
 lightGrey symbol =
-    Html.span [ Attr.style [ ( "color", "#ccc" ) ] ] [ Html.text (" " ++ symbol) ]
+    icon "#ccc" symbol
 
 
 simpleRowAttrs : data -> List (Attribute msg)
@@ -458,7 +470,7 @@ view (Config { toId, toMsg, columns, customizations }) state data =
             List.map Table.headAttr theadDetails.attributes
     in
     Table.table
-        { options = [ Table.responsive, Table.hover ]
+        { options = customizations.tableOptions
         , thead = Table.thead theadAttrs [ Table.tr [] theadCells ]
         , tbody =
             Table.keyedTBody customizations.tbodyAttrs
