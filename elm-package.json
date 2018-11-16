@@ -12,7 +12,13 @@
     "dependencies": {
         "elm-lang/core": "5.0.0 <= v < 6.0.0",
         "elm-lang/html": "2.0.0 <= v < 3.0.0",
-        "rundis/elm-bootstrap": "4.1.0 <= v < 5.0.0"
+        "indicatrix/elm-bootstrap": "4.1.0 <= v < 5.0.0"
+    },
+    "dependency-sources": {
+        "indicatrix/elm-bootstrap": {
+            "url": "https://github.com/indicatrix/elm-bootstrap.git",
+            "ref": "9fe3c2b94b2b0c8b16051fe08423d77b161758bc"
+        }
     },
     "elm-version": "0.18.0 <= v < 0.19.0"
 }
