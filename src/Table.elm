@@ -57,6 +57,7 @@ is not that crazy.
 
 -}
 
+import Bootstrap.Table as Table
 import Html exposing (Attribute, Html)
 import Html.Attributes as Attr
 import Html.Events as E
@@ -258,7 +259,11 @@ simpleTheadHelp ( name, status, onClick ) =
                         )
                     ]
     in
-    Html.th [ onClick ] content
+    Html.div
+        [ onClick
+        , Attr.style [ ( "cursor", "pointer" ) ]
+        ]
+        content
 
 
 darkGrey : String -> Html msg
@@ -446,28 +451,19 @@ view (Config { toId, toMsg, columns, customizations }) state data =
         theadDetails =
             customizations.thead (List.map (toHeaderInfo state toMsg) columns)
 
-        thead =
-            Html.thead theadDetails.attributes theadDetails.children
+        theadCells =
+            List.map (\cell -> Table.th [] [ cell ]) theadDetails.children
 
-        tbody =
-            Keyed.node "tbody" customizations.tbodyAttrs <|
-                List.map (viewRow toId columns customizations.rowAttrs) sortedData
-
-        withFoot =
-            case customizations.tfoot of
-                Nothing ->
-                    tbody :: []
-
-                Just { attributes, children } ->
-                    Html.tfoot attributes children :: tbody :: []
+        theadAttrs =
+            List.map Table.headAttr theadDetails.attributes
     in
-    Html.table customizations.tableAttrs <|
-        case customizations.caption of
-            Nothing ->
-                thead :: withFoot
-
-            Just { attributes, children } ->
-                Html.caption attributes children :: thead :: withFoot
+    Table.table
+        { options = [ Table.responsive, Table.hover ]
+        , thead = Table.thead theadAttrs [ Table.tr [] theadCells ]
+        , tbody =
+            Table.keyedTBody customizations.tbodyAttrs
+                (List.map (viewRow toId columns customizations.rowAttrs) sortedData)
+        }
 
 
 toHeaderInfo : State -> (State -> msg) -> ColumnData data msg -> ( String, Status, Attribute msg )
@@ -504,25 +500,32 @@ onClick name isReversed toMsg =
             Json.map2 State (Json.succeed name) (Json.succeed isReversed)
 
 
-viewRow : (data -> String) -> List (ColumnData data msg) -> (data -> List (Attribute msg)) -> data -> ( String, Html msg )
+viewRow : (data -> String) -> List (ColumnData data msg) -> (data -> List (Attribute msg)) -> data -> ( String, Table.Row msg )
 viewRow toId columns toRowAttrs data =
     ( toId data
-    , lazy3 viewRowHelp columns toRowAttrs data
+    , viewRowHelp columns toRowAttrs data
     )
 
 
-viewRowHelp : List (ColumnData data msg) -> (data -> List (Attribute msg)) -> data -> Html msg
+viewRowHelp : List (ColumnData data msg) -> (data -> List (Attribute msg)) -> data -> Table.Row msg
 viewRowHelp columns toRowAttrs data =
-    Html.tr (toRowAttrs data) (List.map (viewCell data) columns)
+    let
+        rowAttrs =
+            data |> toRowAttrs |> List.map Table.rowAttr
+    in
+    Table.tr rowAttrs (List.map (viewCell data) columns)
 
 
-viewCell : data -> ColumnData data msg -> Html msg
+viewCell : data -> ColumnData data msg -> Table.Cell msg
 viewCell data { viewData } =
     let
         details =
             viewData data
+
+        cellAttributes =
+            List.map Table.cellAttr details.attributes
     in
-    Html.td details.attributes details.children
+    Table.td cellAttributes details.children
 
 
 
@@ -657,3 +660,8 @@ sort by best time by default, but also see the other order.
 increasingOrDecreasingBy : (data -> comparable) -> Sorter data
 increasingOrDecreasingBy toComparable =
     IncOrDec (List.sortBy toComparable)
+
+
+remoteSorter : Sorter data
+remoteSorter =
+    IncOrDec identity
