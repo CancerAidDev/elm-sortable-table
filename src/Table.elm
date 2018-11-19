@@ -1,13 +1,12 @@
 module Table exposing
     ( view
-    , config, stringColumn, intColumn, floatColumn
-    , State, initialSort
-    , Column, customColumn, veryCustomColumn
+    , config, stringColumn, intColumn, floatColumn, dateColumn
+    , State, initialSort, id, remoteOrder
+    , Column, customColumn, veryCustomColumn, DateColumnConfig
     , Sorter, unsortable, increasingBy, decreasingBy
-    , increasingOrDecreasingBy, decreasingOrIncreasingBy
-    , Config, customConfig, Customizations, HtmlDetails, Status(..)
+    , increasingOrDecreasingBy, decreasingOrIncreasingBy, remoteSorting
+    , Config, customConfig, Customizations, HtmlDetails, htmlDetails, Status(..)
     , defaultCustomizations
-    , DateColumnConfig, dateColumn, htmlDetails, remoteSorting
     )
 
 {-| This library helps you create sortable tables. The crucial feature is that it
@@ -28,12 +27,12 @@ I recommend checking out the [examples] to get a feel for how it works.
 
 # Configuration
 
-@docs config, stringColumn, intColumn, floatColumn
+@docs config, stringColumn, intColumn, floatColumn, dateColumn
 
 
 # State
 
-@docs State, initialSort
+@docs State, initialSort, id, remoteOrder
 
 
 # Crazy Customization
@@ -46,14 +45,14 @@ is not that crazy.
 
 ## Custom Columns
 
-@docs Column, customColumn, veryCustomColumn
+@docs Column, customColumn, veryCustomColumn, DateColumnConfig
 @docs Sorter, unsortable, increasingBy, decreasingBy
-@docs increasingOrDecreasingBy, decreasingOrIncreasingBy
+@docs increasingOrDecreasingBy, decreasingOrIncreasingBy, remoteSorting
 
 
 ## Custom Tables
 
-@docs Config, customConfig, Customizations, HtmlDetails, Status
+@docs Config, customConfig, Customizations, HtmlDetails, htmlDetails, Status
 @docs defaultCustomizations
 
 -}
@@ -75,7 +74,27 @@ import Json.Decode as Json
 {-| Tracks which column to sort by.
 -}
 type State
-    = State String Bool
+    = State Id Bool
+
+
+type Id
+    = Id String
+
+
+{-| -}
+id : State -> String
+id (State (Id id) _) =
+    id
+
+
+{-| -}
+remoteOrder : State -> String
+remoteOrder (State _ isReversed) =
+    if isReversed then
+        "desc"
+
+    else
+        "asc"
 
 
 {-| Create a table state. By providing a column name, you determine which
@@ -88,8 +107,8 @@ yachts to be sorted by length by default, you might say:
 
 -}
 initialSort : String -> State
-initialSort header =
-    State header False
+initialSort id =
+    State (Id id) False
 
 
 
@@ -328,7 +347,8 @@ type Column data msg
 
 
 type alias ColumnData data msg =
-    { name : String
+    { id : Id
+    , name : String
     , viewData : data -> HtmlDetails msg
     , sorter : Sorter data
     }
@@ -338,7 +358,8 @@ type alias ColumnData data msg =
 stringColumn : String -> (data -> String) -> Column data msg
 stringColumn name toStr =
     Column
-        { name = name
+        { id = Id name
+        , name = name
         , viewData = textDetails << toStr
         , sorter = increasingOrDecreasingBy toStr
         }
@@ -348,7 +369,8 @@ stringColumn name toStr =
 intColumn : String -> (data -> Int) -> Column data msg
 intColumn name toInt =
     Column
-        { name = name
+        { id = Id name
+        , name = name
         , viewData = textDetails << toString << toInt
         , sorter = increasingOrDecreasingBy toInt
         }
@@ -358,12 +380,14 @@ intColumn name toInt =
 floatColumn : String -> (data -> Float) -> Column data msg
 floatColumn name toFloat =
     Column
-        { name = name
+        { id = Id name
+        , name = name
         , viewData = textDetails << toString << toFloat
         , sorter = increasingOrDecreasingBy toFloat
         }
 
 
+{-| -}
 type alias DateColumnConfig data =
     { name : String
     , toIsoDate : data -> String
@@ -385,7 +409,8 @@ dateColumn { name, toIsoDate, default, formatString } =
                     Date.toFormattedString formatString date
     in
     Column
-        { name = name
+        { id = Id name
+        , name = name
         , viewData = textDetails << toFormattedDate
         , sorter = increasingOrDecreasingBy toIsoDate
         }
@@ -396,6 +421,7 @@ textDetails str =
     HtmlDetails [] [ Html.text str ]
 
 
+{-| -}
 htmlDetails : Html msg -> HtmlDetails msg
 htmlDetails html =
     HtmlDetails [] [ html ]
@@ -427,14 +453,15 @@ More about sorters soon!
 
 -}
 customColumn :
-    { name : String
+    { id : String
+    , name : String
     , viewData : data -> String
     , sorter : Sorter data
     }
     -> Column data msg
-customColumn { name, viewData, sorter } =
+customColumn { id, name, viewData, sorter } =
     Column <|
-        ColumnData name (textDetails << viewData) sorter
+        ColumnData (Id id) name (textDetails << viewData) sorter
 
 
 {-| It is _possible_ that you want something crazier than `customColumn`. In
@@ -464,13 +491,15 @@ So maybe you want to a dollars column, and the dollar signs should be green.
 
 -}
 veryCustomColumn :
-    { name : String
+    { id : String
+    , name : String
     , viewData : data -> HtmlDetails msg
     , sorter : Sorter data
     }
     -> Column data msg
-veryCustomColumn =
-    Column
+veryCustomColumn { id, name, viewData, sorter } =
+    Column <|
+        ColumnData (Id id) name viewData sorter
 
 
 
@@ -513,37 +542,37 @@ view (Config { toId, toMsg, columns, customizations }) state data =
 
 
 toHeaderInfo : State -> (State -> msg) -> ColumnData data msg -> ( String, Status, Attribute msg )
-toHeaderInfo (State sortName isReversed) toMsg { name, sorter } =
+toHeaderInfo (State sortid isReversed) toMsg { name, id, sorter } =
     case sorter of
         None ->
-            ( name, Unsortable, onClick sortName isReversed toMsg )
+            ( name, Unsortable, onClick sortid isReversed toMsg )
 
         Increasing _ ->
-            ( name, Sortable (name == sortName), onClick name False toMsg )
+            ( name, Sortable (id == sortid), onClick id False toMsg )
 
         Decreasing _ ->
-            ( name, Sortable (name == sortName), onClick name False toMsg )
+            ( name, Sortable (id == sortid), onClick id False toMsg )
 
         IncOrDec _ ->
-            if name == sortName then
-                ( name, Reversible (Just isReversed), onClick name (not isReversed) toMsg )
+            if id == sortid then
+                ( name, Reversible (Just isReversed), onClick id (not isReversed) toMsg )
 
             else
-                ( name, Reversible Nothing, onClick name False toMsg )
+                ( name, Reversible Nothing, onClick id False toMsg )
 
         DecOrInc _ ->
-            if name == sortName then
-                ( name, Reversible (Just isReversed), onClick name (not isReversed) toMsg )
+            if id == sortid then
+                ( name, Reversible (Just isReversed), onClick id (not isReversed) toMsg )
 
             else
-                ( name, Reversible Nothing, onClick name False toMsg )
+                ( name, Reversible Nothing, onClick id False toMsg )
 
 
-onClick : String -> Bool -> (State -> msg) -> Attribute msg
-onClick name isReversed toMsg =
+onClick : Id -> Bool -> (State -> msg) -> Attribute msg
+onClick id isReversed toMsg =
     E.on "click" <|
         Json.map toMsg <|
-            Json.map2 State (Json.succeed name) (Json.succeed isReversed)
+            Json.map2 State (Json.succeed id) (Json.succeed isReversed)
 
 
 viewRow : (data -> String) -> List (ColumnData data msg) -> (data -> List (Attribute msg)) -> data -> ( String, Table.Row msg )
@@ -615,14 +644,14 @@ applySorter isReversed sorter data =
                 List.reverse (sort data)
 
 
-findSorter : String -> List (ColumnData data msg) -> Maybe (Sorter data)
+findSorter : Id -> List (ColumnData data msg) -> Maybe (Sorter data)
 findSorter selectedColumn columnData =
     case columnData of
         [] ->
             Nothing
 
-        { name, sorter } :: remainingColumnData ->
-            if name == selectedColumn then
+        { id, sorter } :: remainingColumnData ->
+            if id == selectedColumn then
                 Just sorter
 
             else
@@ -708,6 +737,7 @@ increasingOrDecreasingBy toComparable =
     IncOrDec (List.sortBy toComparable)
 
 
+{-| -}
 remoteSorting : Sorter data
 remoteSorting =
     IncOrDec identity
