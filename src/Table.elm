@@ -7,7 +7,7 @@ module Table exposing
     , increasingOrDecreasingBy, decreasingOrIncreasingBy
     , Config, customConfig, Customizations, HtmlDetails, Status(..)
     , defaultCustomizations
-    , DateColumnConfig, dateColumn
+    , DateColumnConfig, dateColumn, htmlDetails, remoteSorting
     )
 
 {-| This library helps you create sortable tables. The crucial feature is that it
@@ -708,6 +708,6 @@ increasingOrDecreasingBy toComparable =
     IncOrDec (List.sortBy toComparable)
 
 
-remoteSorter : Sorter data
-remoteSorter =
+remoteSorting : Sorter data
+remoteSorting =
     IncOrDec identity
