@@ -7,6 +7,7 @@ module Table exposing
     , increasingOrDecreasingBy, decreasingOrIncreasingBy
     , Config, customConfig, Customizations, HtmlDetails, Status(..)
     , defaultCustomizations
+    , DateColumnConfig, dateColumn
     )
 
 {-| This library helps you create sortable tables. The crucial feature is that it
