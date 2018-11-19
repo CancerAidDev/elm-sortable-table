@@ -58,6 +58,7 @@ is not that crazy.
 -}
 
 import Bootstrap.Table as Table
+import Date.Extra as Date
 import Html exposing (Attribute, Html)
 import Html.Attributes as Attr
 import Html.Events as E
@@ -362,9 +363,41 @@ floatColumn name toFloat =
         }
 
 
+type alias DateColumnConfig data =
+    { name : String
+    , toIsoDate : data -> String
+    , default : String
+    , formatString : String
+    }
+
+
+{-| -}
+dateColumn : DateColumnConfig data -> Column data msg
+dateColumn { name, toIsoDate, default, formatString } =
+    let
+        toFormattedDate data =
+            case Date.fromIsoString <| toIsoDate data of
+                Err _ ->
+                    default
+
+                Ok date ->
+                    Date.toFormattedString formatString date
+    in
+    Column
+        { name = name
+        , viewData = textDetails << toFormattedDate
+        , sorter = increasingOrDecreasingBy toIsoDate
+        }
+
+
 textDetails : String -> HtmlDetails msg
 textDetails str =
     HtmlDetails [] [ Html.text str ]
+
+
+htmlDetails : Html msg -> HtmlDetails msg
+htmlDetails html =
+    HtmlDetails [] [ html ]
 
 
 {-| Perhaps the basic columns are not quite what you want. Maybe you want to
