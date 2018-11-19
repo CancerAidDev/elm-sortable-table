@@ -1,7 +1,7 @@
 module Table exposing
     ( view
     , config, stringColumn, intColumn, floatColumn, dateColumn
-    , State, initialSort, id, remoteOrder
+    , State, initialSort
     , Column, customColumn, veryCustomColumn, DateColumnConfig
     , Sorter, unsortable, increasingBy, decreasingBy
     , increasingOrDecreasingBy, decreasingOrIncreasingBy, remoteSorting
@@ -32,7 +32,7 @@ I recommend checking out the [examples] to get a feel for how it works.
 
 # State
 
-@docs State, initialSort, id, remoteOrder
+@docs State, initialSort
 
 
 # Crazy Customization
@@ -74,27 +74,7 @@ import Json.Decode as Json
 {-| Tracks which column to sort by.
 -}
 type State
-    = State Id Bool
-
-
-type Id
-    = Id String
-
-
-{-| -}
-id : State -> String
-id (State (Id id) _) =
-    id
-
-
-{-| -}
-remoteOrder : State -> String
-remoteOrder (State _ isReversed) =
-    if isReversed then
-        "desc"
-
-    else
-        "asc"
+    = State String Bool
 
 
 {-| Create a table state. By providing a column name, you determine which
@@ -107,8 +87,8 @@ yachts to be sorted by length by default, you might say:
 
 -}
 initialSort : String -> State
-initialSort id =
-    State (Id id) False
+initialSort header =
+    State header False
 
 
 
@@ -347,8 +327,7 @@ type Column data msg
 
 
 type alias ColumnData data msg =
-    { id : Id
-    , name : String
+    { name : String
     , viewData : data -> HtmlDetails msg
     , sorter : Sorter data
     }
@@ -358,8 +337,7 @@ type alias ColumnData data msg =
 stringColumn : String -> (data -> String) -> Column data msg
 stringColumn name toStr =
     Column
-        { id = Id name
-        , name = name
+        { name = name
         , viewData = textDetails << toStr
         , sorter = increasingOrDecreasingBy toStr
         }
@@ -369,8 +347,7 @@ stringColumn name toStr =
 intColumn : String -> (data -> Int) -> Column data msg
 intColumn name toInt =
     Column
-        { id = Id name
-        , name = name
+        { name = name
         , viewData = textDetails << toString << toInt
         , sorter = increasingOrDecreasingBy toInt
         }
@@ -380,8 +357,7 @@ intColumn name toInt =
 floatColumn : String -> (data -> Float) -> Column data msg
 floatColumn name toFloat =
     Column
-        { id = Id name
-        , name = name
+        { name = name
         , viewData = textDetails << toString << toFloat
         , sorter = increasingOrDecreasingBy toFloat
         }
@@ -409,8 +385,7 @@ dateColumn { name, toIsoDate, default, formatString } =
                     Date.toFormattedString formatString date
     in
     Column
-        { id = Id name
-        , name = name
+        { name = name
         , viewData = textDetails << toFormattedDate
         , sorter = increasingOrDecreasingBy toIsoDate
         }
@@ -453,15 +428,14 @@ More about sorters soon!
 
 -}
 customColumn :
-    { id : String
-    , name : String
+    { name : String
     , viewData : data -> String
     , sorter : Sorter data
     }
     -> Column data msg
-customColumn { id, name, viewData, sorter } =
+customColumn { name, viewData, sorter } =
     Column <|
-        ColumnData (Id id) name (textDetails << viewData) sorter
+        ColumnData name (textDetails << viewData) sorter
 
 
 {-| It is _possible_ that you want something crazier than `customColumn`. In
@@ -491,15 +465,13 @@ So maybe you want to a dollars column, and the dollar signs should be green.
 
 -}
 veryCustomColumn :
-    { id : String
-    , name : String
+    { name : String
     , viewData : data -> HtmlDetails msg
     , sorter : Sorter data
     }
     -> Column data msg
-veryCustomColumn { id, name, viewData, sorter } =
-    Column <|
-        ColumnData (Id id) name viewData sorter
+veryCustomColumn =
+    Column
 
 
 
@@ -542,37 +514,37 @@ view (Config { toId, toMsg, columns, customizations }) state data =
 
 
 toHeaderInfo : State -> (State -> msg) -> ColumnData data msg -> ( String, Status, Attribute msg )
-toHeaderInfo (State sortid isReversed) toMsg { name, id, sorter } =
+toHeaderInfo (State sortName isReversed) toMsg { name, sorter } =
     case sorter of
         None ->
-            ( name, Unsortable, onClick sortid isReversed toMsg )
+            ( name, Unsortable, onClick sortName isReversed toMsg )
 
         Increasing _ ->
-            ( name, Sortable (id == sortid), onClick id False toMsg )
+            ( name, Sortable (name == sortName), onClick name False toMsg )
 
         Decreasing _ ->
-            ( name, Sortable (id == sortid), onClick id False toMsg )
+            ( name, Sortable (name == sortName), onClick name False toMsg )
 
         IncOrDec _ ->
-            if id == sortid then
-                ( name, Reversible (Just isReversed), onClick id (not isReversed) toMsg )
+            if name == sortName then
+                ( name, Reversible (Just isReversed), onClick name (not isReversed) toMsg )
 
             else
-                ( name, Reversible Nothing, onClick id False toMsg )
+                ( name, Reversible Nothing, onClick name False toMsg )
 
         DecOrInc _ ->
-            if id == sortid then
-                ( name, Reversible (Just isReversed), onClick id (not isReversed) toMsg )
+            if name == sortName then
+                ( name, Reversible (Just isReversed), onClick name (not isReversed) toMsg )
 
             else
-                ( name, Reversible Nothing, onClick id False toMsg )
+                ( name, Reversible Nothing, onClick name False toMsg )
 
 
-onClick : Id -> Bool -> (State -> msg) -> Attribute msg
-onClick id isReversed toMsg =
+onClick : String -> Bool -> (State -> msg) -> Attribute msg
+onClick name isReversed toMsg =
     E.on "click" <|
         Json.map toMsg <|
-            Json.map2 State (Json.succeed id) (Json.succeed isReversed)
+            Json.map2 State (Json.succeed name) (Json.succeed isReversed)
 
 
 viewRow : (data -> String) -> List (ColumnData data msg) -> (data -> List (Attribute msg)) -> data -> ( String, Table.Row msg )
@@ -644,14 +616,14 @@ applySorter isReversed sorter data =
                 List.reverse (sort data)
 
 
-findSorter : Id -> List (ColumnData data msg) -> Maybe (Sorter data)
+findSorter : String -> List (ColumnData data msg) -> Maybe (Sorter data)
 findSorter selectedColumn columnData =
     case columnData of
         [] ->
             Nothing
 
-        { id, sorter } :: remainingColumnData ->
-            if id == selectedColumn then
+        { name, sorter } :: remainingColumnData ->
+            if name == selectedColumn then
                 Just sorter
 
             else
