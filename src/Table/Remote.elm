@@ -64,8 +64,6 @@ import Date.Extra as Date
 import Html exposing (Attribute, Html)
 import Html.Attributes as Attr
 import Html.Events as E
-import Html.Keyed as Keyed
-import Html.Lazy exposing (lazy2, lazy3)
 import Json.Decode as Json
 
 
@@ -75,20 +73,20 @@ import Json.Decode as Json
 
 {-| Tracks which column to sort by.
 -}
-type State
-    = State String Bool
+type State data msg
+    = State (Column data msg) Bool
 
 
 {-| -}
-id : State -> String
-id (State id _) =
-    id
+id : State data msg -> String
+id (State (Column columnData) _) =
+    columnData.id
 
 
 {-| -}
-remoteOrder : State -> Sorter -> String
-remoteOrder (State _ isReversed) sorter =
-    case sorter of
+remoteOrder : State data msg -> String
+remoteOrder (State (Column columnData) isReversed) =
+    case columnData.sorter of
         None ->
             "asc"
 
@@ -122,9 +120,9 @@ yachts to be sorted by length by default, you might say:
     Table.initialSort "Length"
 
 -}
-initialSort : String -> State
-initialSort id =
-    State id False
+initialSort : Column data msg -> State data msg
+initialSort column =
+    State column False
 
 
 
@@ -140,7 +138,7 @@ It should only appear in `view` code.
 type Config data msg
     = Config
         { toId : data -> String
-        , toMsg : State -> msg
+        , toMsg : State data msg -> msg
         , columns : List (ColumnData data msg)
         , customizations : Customizations data msg
         }
@@ -182,7 +180,7 @@ See the [examples] to get a better feel for this!
 -}
 config :
     { toId : data -> String
-    , toMsg : State -> msg
+    , toMsg : State data msg -> msg
     , columns : List (Column data msg)
     }
     -> Config data msg
@@ -199,7 +197,7 @@ config { toId, toMsg, columns } =
 -}
 customConfig :
     { toId : data -> String
-    , toMsg : State -> msg
+    , toMsg : State data msg -> msg
     , columns : List (Column data msg)
     , customizations : Customizations data msg
     }
@@ -533,7 +531,7 @@ statically, and look for a different library if you need something crazier than
 that.
 
 -}
-view : Config data msg -> State -> List data -> Html msg
+view : Config data msg -> State data msg -> List data -> Html msg
 view (Config { toId, toMsg, columns, customizations }) state data =
     let
         -- Data should be sorted by caller
@@ -558,38 +556,38 @@ view (Config { toId, toMsg, columns, customizations }) state data =
         }
 
 
-toHeaderInfo : State -> (State -> msg) -> ColumnData data msg -> ( String, Status, Attribute msg )
-toHeaderInfo (State sortid isReversed) toMsg { name, id, sorter } =
-    case sorter of
+toHeaderInfo : State data msg -> (State data msg -> msg) -> ColumnData data msg -> ( String, Status, Attribute msg )
+toHeaderInfo (State (Column stateColumnData) isReversed) toMsg columnData =
+    case columnData.sorter of
         None ->
-            ( name, Unsortable, onClick sortid isReversed toMsg )
+            ( columnData.name, Unsortable, onClick stateColumnData isReversed toMsg )
 
         Increasing ->
-            ( name, Sortable (id == sortid), onClick id False toMsg )
+            ( columnData.name, Sortable (columnData.id == stateColumnData.id), onClick columnData False toMsg )
 
         Decreasing ->
-            ( name, Sortable (id == sortid), onClick id False toMsg )
+            ( columnData.name, Sortable (columnData.id == stateColumnData.id), onClick columnData False toMsg )
 
         IncOrDec ->
-            if id == sortid then
-                ( name, Reversible (Just isReversed), onClick id (not isReversed) toMsg )
+            if columnData.id == stateColumnData.id then
+                ( columnData.name, Reversible (Just isReversed), onClick columnData (not isReversed) toMsg )
 
             else
-                ( name, Reversible Nothing, onClick id False toMsg )
+                ( columnData.name, Reversible Nothing, onClick columnData False toMsg )
 
         DecOrInc ->
-            if id == sortid then
-                ( name, Reversible (Just isReversed), onClick id (not isReversed) toMsg )
+            if columnData.id == stateColumnData.id then
+                ( columnData.name, Reversible (Just isReversed), onClick columnData (not isReversed) toMsg )
 
             else
-                ( name, Reversible Nothing, onClick id False toMsg )
+                ( columnData.name, Reversible Nothing, onClick columnData False toMsg )
 
 
-onClick : String -> Bool -> (State -> msg) -> Attribute msg
-onClick id isReversed toMsg =
+onClick : ColumnData data msg -> Bool -> (State data msg -> msg) -> Attribute msg
+onClick columnData isReversed toMsg =
     E.on "click" <|
         Json.map toMsg <|
-            Json.map2 State (Json.succeed id) (Json.succeed isReversed)
+            Json.map2 State (Json.succeed <| Column columnData) (Json.succeed isReversed)
 
 
 viewRow : (data -> String) -> List (ColumnData data msg) -> (data -> List (Attribute msg)) -> data -> ( String, Table.Row msg )
