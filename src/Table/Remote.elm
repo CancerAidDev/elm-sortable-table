@@ -100,17 +100,17 @@ remoteOrder (State _ isReversed) sorter =
 
         IncOrDec ->
             if isReversed then
-                "asc"
+                "desc"
 
             else
-                "desc"
+                "asc"
 
         DecOrInc ->
             if isReversed then
-                "desc"
+                "asc"
 
             else
-                "asc"
+                "desc"
 
 
 {-| Create a table state. By providing a column name, you determine which
