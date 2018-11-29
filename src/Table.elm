@@ -58,13 +58,14 @@ is not that crazy.
 -}
 
 import Bootstrap.Table as Table
-import Date.Extra as Date
+import Date as Date
 import Html exposing (Attribute, Html)
 import Html.Attributes as Attr
 import Html.Events as E
 import Html.Keyed as Keyed
 import Html.Lazy exposing (lazy2, lazy3)
 import Json.Decode as Json
+import String
 
 
 
@@ -230,7 +231,7 @@ simpleThead headers =
 
 
 simpleTheadHelp : ( String, Status, Attribute msg ) -> Html msg
-simpleTheadHelp ( name, status, onClick ) =
+simpleTheadHelp ( name, status, onClickAction ) =
     let
         content =
             case status of
@@ -263,20 +264,20 @@ simpleTheadHelp ( name, status, onClick ) =
                     ]
     in
     Html.div
-        [ onClick
-        , Attr.style [ ( "cursor", "pointer" ) ]
+        [ onClickAction
+        , Attr.style "cursor" "pointer"
         ]
         content
 
 
 nbsp : String
 nbsp =
-    " "
+    "\u{00A0}"
 
 
 icon : String -> String -> Html msg
 icon color symbol =
-    Html.span [ Attr.style [ ( "color", color ) ] ] [ Html.text (nbsp ++ symbol) ]
+    Html.span [ Attr.style "color" color ] [ Html.text (nbsp ++ symbol) ]
 
 
 darkGrey : String -> Html msg
@@ -348,7 +349,7 @@ intColumn : String -> (data -> Int) -> Column data msg
 intColumn name toInt =
     Column
         { name = name
-        , viewData = textDetails << toString << toInt
+        , viewData = textDetails << String.fromInt << toInt
         , sorter = increasingOrDecreasingBy toInt
         }
 
@@ -358,7 +359,7 @@ floatColumn : String -> (data -> Float) -> Column data msg
 floatColumn name toFloat =
     Column
         { name = name
-        , viewData = textDetails << toString << toFloat
+        , viewData = textDetails << String.fromFloat << toFloat
         , sorter = increasingOrDecreasingBy toFloat
         }
 
@@ -382,7 +383,7 @@ dateColumn { name, toIsoDate, default, formatString } =
                     default
 
                 Ok date ->
-                    Date.toFormattedString formatString date
+                    Date.format formatString date
     in
     Column
         { name = name
@@ -418,7 +419,7 @@ quite cut it. You could define a custom column like this:
 
     viewDollars : Float -> String
     viewDollars dollars =
-        "$" ++ toString (round (dollars / 1000)) ++ "k"
+        "$" ++ String.fromInt (round (dollars / 1000)) ++ "k"
 
 The `viewData` field means we will displays the number `12345.67` as `$12k`.
 
@@ -459,8 +460,8 @@ So maybe you want to a dollars column, and the dollar signs should be green.
     viewDollars : Float -> Table.HtmlDetails msg
     viewDollars dollars =
         Table.HtmlDetails []
-            [ span [ style [ ( "color", "green" ) ] ] [ text "$" ]
-            , text (toString (round (dollars / 1000)) ++ "k")
+            [ span [ style "color" "green" ] [ text "$" ]
+            , text (String.fromInt (round (dollars / 1000)) ++ "k")
             ]
 
 -}
@@ -493,7 +494,7 @@ view : Config data msg -> State -> List data -> Html msg
 view (Config { toId, toMsg, columns, customizations }) state data =
     let
         sortedData =
-            sort state columns data
+            sortList state columns data
 
         theadDetails =
             customizations.thead (List.map (toHeaderInfo state toMsg) columns)
@@ -579,8 +580,8 @@ viewCell data { viewData } =
 -- SORTING
 
 
-sort : State -> List (ColumnData data msg) -> List data -> List data
-sort (State selectedColumn isReversed) columnData data =
+sortList : State -> List (ColumnData data msg) -> List data -> List data
+sortList (State selectedColumn isReversed) columnData data =
     case findSorter selectedColumn columnData of
         Nothing ->
             data

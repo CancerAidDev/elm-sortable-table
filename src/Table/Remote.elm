@@ -1,12 +1,13 @@
 module Table.Remote exposing
     ( view
     , config, stringColumn, intColumn, floatColumn, dateColumn
-    , State, initialSort, id, remoteOrder
+    , State, initialSort, remoteOrder
     , Column, customColumn, veryCustomColumn, DateColumnConfig
     , Sorter, unsortable, increasingBy, decreasingBy
     , increasingOrDecreasingBy, decreasingOrIncreasingBy
     , Config, customConfig, Customizations, HtmlDetails, htmlDetails, Status(..)
     , defaultCustomizations
+    , getId
     )
 
 {-| This library helps you create sortable tables. The crucial feature is that it
@@ -60,7 +61,7 @@ is not that crazy.
 -}
 
 import Bootstrap.Table as Table
-import Date.Extra as Date
+import Date as Date
 import Html exposing (Attribute, Html)
 import Html.Attributes as Attr
 import Html.Events as E
@@ -78,8 +79,8 @@ type State data msg
 
 
 {-| -}
-id : State data msg -> String
-id (State (Column columnData) _) =
+getId : State data msg -> String
+getId (State (Column columnData) _) =
     columnData.id
 
 
@@ -264,7 +265,7 @@ simpleThead headers =
 
 
 simpleTheadHelp : ( String, Status, Attribute msg ) -> Html msg
-simpleTheadHelp ( name, status, onClick ) =
+simpleTheadHelp ( name, status, onClickAction ) =
     let
         content =
             case status of
@@ -297,20 +298,20 @@ simpleTheadHelp ( name, status, onClick ) =
                     ]
     in
     Html.div
-        [ onClick
-        , Attr.style [ ( "cursor", "pointer" ) ]
+        [ onClickAction
+        , Attr.style "cursor" "pointer"
         ]
         content
 
 
 nbsp : String
 nbsp =
-    " "
+    "\u{00A0}"
 
 
 icon : String -> String -> Html msg
 icon color symbol =
-    Html.span [ Attr.style [ ( "color", color ) ] ] [ Html.text (nbsp ++ symbol) ]
+    Html.span [ Attr.style "color" color ] [ Html.text (nbsp ++ symbol) ]
 
 
 darkGrey : String -> Html msg
@@ -385,7 +386,7 @@ intColumn id name toInt =
     Column
         { id = id
         , name = name
-        , viewData = textDetails << toString << toInt
+        , viewData = textDetails << String.fromInt << toInt
         , sorter = increasingOrDecreasingBy
         }
 
@@ -396,7 +397,7 @@ floatColumn id name toFloat =
     Column
         { id = id
         , name = name
-        , viewData = textDetails << toString << toFloat
+        , viewData = textDetails << String.fromFloat << toFloat
         , sorter = increasingOrDecreasingBy
         }
 
@@ -420,7 +421,7 @@ dateColumn id { name, toIsoDate, default, formatString } =
                     default
 
                 Ok date ->
-                    Date.toFormattedString formatString date
+                    Date.format formatString date
     in
     Column
         { id = id
@@ -457,7 +458,7 @@ quite cut it. You could define a custom column like this:
 
     viewDollars : Float -> String
     viewDollars dollars =
-        "$" ++ toString (round (dollars / 1000)) ++ "k"
+        "$" ++ String.fromInt (round (dollars / 1000)) ++ "k"
 
 The `viewData` field means we will displays the number `12345.67` as `$12k`.
 
@@ -499,8 +500,8 @@ So maybe you want to a dollars column, and the dollar signs should be green.
     viewDollars : Float -> Table.HtmlDetails msg
     viewDollars dollars =
         Table.HtmlDetails []
-            [ span [ style [ ( "color", "green" ) ] ] [ text "$" ]
-            , text (toString (round (dollars / 1000)) ++ "k")
+            [ span [ style "color" "green" ] [ text "$" ]
+            , text (String.fromInt (round (dollars / 1000)) ++ "k")
             ]
 
 -}

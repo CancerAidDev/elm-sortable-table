@@ -4,16 +4,13 @@
   "name": "elm-sortable-table",
   "version": "1.0.0",
   "dependencies": {
-    "elm": "^0.18",
+    "elm": "^0.19.0-bugfix2",
+    "elm-format": "^0.8.1",
+    "elm-github-install": "^1.6.1",
     "elm-test": "^0.18.13-beta4",
-    "elm-webpack-loader": "^4.5.0",
-    "elm-github-install": "^1.6.1"
+    "elm-webpack-loader": "^4.5.0"
   },
-  "devDependencies": {
-  },
-  "resolutions": {
-  },
-  "scripts": {
-  }
+  "devDependencies": {},
+  "resolutions": {},
+  "scripts": {}
 }
-
