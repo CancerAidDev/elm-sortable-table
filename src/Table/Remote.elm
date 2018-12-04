@@ -1,8 +1,8 @@
 module Table.Remote exposing
     ( view
-    , config, stringColumn, intColumn, floatColumn, dateColumn
+    , config, stringColumn, intColumn, floatColumn, dateColumn, posixColumn
     , State, initialSort, remoteOrder
-    , Column, customColumn, veryCustomColumn, DateColumnConfig
+    , Column, customColumn, veryCustomColumn, DateColumnConfig, PosixColumnConfig
     , Sorter, unsortable, increasingBy, decreasingBy
     , increasingOrDecreasingBy, decreasingOrIncreasingBy
     , Config, customConfig, Customizations, HtmlDetails, htmlDetails, Status(..)
@@ -30,7 +30,7 @@ I recommend checking out the [examples] to get a feel for how it works.
 
 # Configuration
 
-@docs config, stringColumn, intColumn, floatColumn, dateColumn
+@docs config, stringColumn, intColumn, floatColumn, dateColumn, posixColumn
 
 
 # State
@@ -48,7 +48,7 @@ is not that crazy.
 
 ## Custom Columns
 
-@docs Column, customColumn, veryCustomColumn, DateColumnConfig
+@docs Column, customColumn, veryCustomColumn, DateColumnConfig, PosixColumnConfig
 @docs Sorter, unsortable, increasingBy, decreasingBy
 @docs increasingOrDecreasingBy, decreasingOrIncreasingBy
 
@@ -66,6 +66,7 @@ import Html exposing (Attribute, Html)
 import Html.Attributes as Attr
 import Html.Events as E
 import Json.Decode as Json
+import Time
 
 
 
@@ -306,7 +307,7 @@ simpleTheadHelp ( name, status, onClickAction ) =
 
 nbsp : String
 nbsp =
-    "\u{00A0}"
+    " "
 
 
 icon : String -> String -> Html msg
@@ -422,6 +423,37 @@ dateColumn id { name, toIsoDate, default, formatString } =
 
                 Ok date ->
                     Date.format formatString date
+    in
+    Column
+        { id = id
+        , name = name
+        , viewData = textDetails << toFormattedDate
+        , sorter = increasingOrDecreasingBy
+        }
+
+
+{-| -}
+type alias PosixColumnConfig data =
+    { name : String
+    , toPosix : data -> Maybe Time.Posix
+    , default : String
+    , formatString : String
+    }
+
+
+{-| -}
+posixColumn : String -> PosixColumnConfig data -> Column data msg
+posixColumn id { name, toPosix, default, formatString } =
+    let
+        toFormattedDate data =
+            case toPosix data of
+                Just posix ->
+                    posix
+                        |> Date.fromPosix Time.utc
+                        |> Date.format formatString
+
+                Nothing ->
+                    default
     in
     Column
         { id = id
