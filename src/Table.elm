@@ -58,7 +58,7 @@ is not that crazy.
 -}
 
 import Bootstrap.Table as Table
-import Date as Date
+import Date
 import Html exposing (Attribute, Html)
 import Html.Attributes as Attr
 import Html.Events as E
@@ -67,6 +67,7 @@ import Html.Lazy exposing (lazy2, lazy3)
 import Json.Decode as Json
 import String
 import Time
+import Time.Format
 
 
 
@@ -410,8 +411,8 @@ posixColumn { name, toPosix, default, formatString } =
             case toPosix data of
                 Just posix ->
                     posix
-                        |> Date.fromPosix Time.utc
-                        |> Date.format formatString
+                        |> Time.posixToMillis
+                        |> Time.Format.format Time.utc formatString
 
                 Nothing ->
                     default

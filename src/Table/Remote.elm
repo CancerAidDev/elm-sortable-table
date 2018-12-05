@@ -67,6 +67,7 @@ import Html.Attributes as Attr
 import Html.Events as E
 import Json.Decode as Json
 import Time
+import Time.Format
 
 
 
@@ -449,8 +450,8 @@ posixColumn id { name, toPosix, default, formatString } =
             case toPosix data of
                 Just posix ->
                     posix
-                        |> Date.fromPosix Time.utc
-                        |> Date.format formatString
+                        |> Time.posixToMillis
+                        |> Time.Format.format Time.utc formatString
 
                 Nothing ->
                     default
