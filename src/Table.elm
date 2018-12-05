@@ -399,20 +399,21 @@ type alias PosixColumnConfig data =
     { name : String
     , toPosix : data -> Maybe Time.Posix
     , default : String
+    , timeZone : Time.Zone
     , formatString : String
     }
 
 
 {-| -}
 posixColumn : PosixColumnConfig data -> Column data msg
-posixColumn { name, toPosix, default, formatString } =
+posixColumn { name, toPosix, default, timeZone, formatString } =
     let
         toFormattedDate data =
             case toPosix data of
                 Just posix ->
                     posix
                         |> Time.posixToMillis
-                        |> Time.Format.format Time.utc formatString
+                        |> Time.Format.format timeZone formatString
 
                 Nothing ->
                     default
