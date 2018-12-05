@@ -1,8 +1,8 @@
 module Table exposing
     ( view
-    , config, stringColumn, intColumn, floatColumn, dateColumn
+    , config, stringColumn, intColumn, floatColumn, dateColumn, posixColumn
     , State, initialSort
-    , Column, customColumn, veryCustomColumn, DateColumnConfig
+    , Column, customColumn, veryCustomColumn, DateColumnConfig, PosixColumnConfig
     , Sorter, unsortable, increasingBy, decreasingBy
     , increasingOrDecreasingBy, decreasingOrIncreasingBy
     , Config, customConfig, Customizations, HtmlDetails, htmlDetails, Status(..)
@@ -27,7 +27,7 @@ I recommend checking out the [examples] to get a feel for how it works.
 
 # Configuration
 
-@docs config, stringColumn, intColumn, floatColumn, dateColumn
+@docs config, stringColumn, intColumn, floatColumn, dateColumn, posixColumn
 
 
 # State
@@ -45,7 +45,7 @@ is not that crazy.
 
 ## Custom Columns
 
-@docs Column, customColumn, veryCustomColumn, DateColumnConfig
+@docs Column, customColumn, veryCustomColumn, DateColumnConfig, PosixColumnConfig
 @docs Sorter, unsortable, increasingBy, decreasingBy
 @docs increasingOrDecreasingBy, decreasingOrIncreasingBy
 
@@ -66,6 +66,7 @@ import Html.Keyed as Keyed
 import Html.Lazy exposing (lazy2, lazy3)
 import Json.Decode as Json
 import String
+import Time
 
 
 
@@ -272,7 +273,7 @@ simpleTheadHelp ( name, status, onClickAction ) =
 
 nbsp : String
 nbsp =
-    "\u{00A0}"
+    " "
 
 
 icon : String -> String -> Html msg
@@ -389,6 +390,39 @@ dateColumn { name, toIsoDate, default, formatString } =
         { name = name
         , viewData = textDetails << toFormattedDate
         , sorter = increasingOrDecreasingBy toIsoDate
+        }
+
+
+{-| -}
+type alias PosixColumnConfig data =
+    { name : String
+    , toPosix : data -> Maybe Time.Posix
+    , default : String
+    , formatString : String
+    }
+
+
+{-| -}
+posixColumn : PosixColumnConfig data -> Column data msg
+posixColumn { name, toPosix, default, formatString } =
+    let
+        toFormattedDate data =
+            case toPosix data of
+                Just posix ->
+                    posix
+                        |> Date.fromPosix Time.utc
+                        |> Date.format formatString
+
+                Nothing ->
+                    default
+
+        toComparable =
+            toPosix >> Maybe.withDefault (Time.millisToPosix 0) >> Time.posixToMillis
+    in
+    Column
+        { name = name
+        , viewData = textDetails << toFormattedDate
+        , sorter = increasingOrDecreasingBy toComparable
         }
 
 

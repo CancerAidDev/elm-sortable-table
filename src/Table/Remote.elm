@@ -61,7 +61,7 @@ is not that crazy.
 -}
 
 import Bootstrap.Table as Table
-import Date as Date
+import Date
 import Html exposing (Attribute, Html)
 import Html.Attributes as Attr
 import Html.Events as E
