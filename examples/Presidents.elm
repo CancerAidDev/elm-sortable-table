@@ -1,14 +1,16 @@
-module Main exposing (Model, Msg(..), Person, config, init, main, presidents, update, view)
+module Presidents exposing (Model, Msg(..), Person, config, init, main, presidents, update, view)
 
+import Browser
 import Html exposing (Html, div, h1, input, text)
 import Html.Attributes exposing (placeholder)
 import Html.Events exposing (onInput)
 import Table
 
 
+main : Program {} Model Msg
 main =
-    Html.program
-        { init = init presidents
+    Browser.element
+        { init = always (init presidents)
         , update = update
         , view = view
         , subscriptions = \_ -> Sub.none

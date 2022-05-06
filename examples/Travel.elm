@@ -1,16 +1,18 @@
-module Main exposing (Model, Msg(..), Sight, checkboxColumn, config, init, main, missionSights, timeColumn, timeToString, toRowAttrs, toggle, update, view, viewCheckbox, viewSummary)
+module Travel exposing (Model, Msg(..), Sight, checkboxColumn, config, init, main, missionSights, timeColumn, timeToString, toRowAttrs, toggle, update, view, viewCheckbox, viewSummary)
 
+import Browser
+import Duration
 import Html exposing (Attribute, Html, div, h1, input, p, text)
 import Html.Attributes exposing (checked, style, type_)
 import Html.Events exposing (onClick)
 import Html.Lazy exposing (lazy)
 import Table exposing (defaultCustomizations)
-import Time exposing (Time)
 
 
+main : Program {} Model Msg
 main =
-    Html.program
-        { init = init missionSights
+    Browser.element
+        { init = always (init missionSights)
         , update = update
         , view = view
         , subscriptions = \_ -> Sub.none
@@ -92,22 +94,22 @@ viewSummary allSights =
         sights ->
             let
                 time =
-                    List.sum (List.map .time sights)
+                    List.sum (List.map (.time >> Duration.inMilliseconds) sights)
 
                 price =
                     List.sum (List.map .price sights)
 
                 summary =
-                    "That is " ++ timeToString time ++ " of fun, costing $" ++ String.fromInt price
+                    "That is " ++ timeToString (Duration.milliseconds time) ++ " of fun, costing $" ++ String.fromFloat price
             in
             p [] [ text summary ]
 
 
-timeToString : Time -> String
+timeToString : Duration.Duration -> String
 timeToString time =
     let
         hours =
-            case floor (Time.inHours time) of
+            case floor (Duration.inHours time) of
                 0 ->
                     ""
 
@@ -118,7 +120,7 @@ timeToString time =
                     String.fromInt n ++ " hours"
 
         minutes =
-            case remainderBy 60 (round (Time.inMinutes time)) of
+            case remainderBy 60 (round (Duration.inMinutes time)) of
                 0 ->
                     ""
 
@@ -170,7 +172,7 @@ timeColumn =
     Table.customColumn
         { name = "Time"
         , viewData = timeToString << .time
-        , sorter = Table.increasingOrDecreasingBy .time
+        , sorter = Table.increasingOrDecreasingBy (.time >> Duration.inMilliseconds)
         }
 
 
@@ -196,7 +198,7 @@ viewCheckbox { selected } =
 
 type alias Sight =
     { name : String
-    , time : Time
+    , time : Duration.Duration
     , price : Float
     , rating : Float
     , selected : Bool
@@ -205,12 +207,12 @@ type alias Sight =
 
 missionSights : List Sight
 missionSights =
-    [ Sight "Eat a Burrito" (30 * Time.minute) 7 4.6 False
-    , Sight "Buy drugs in Dolores park" Time.hour 20 4.8 False
-    , Sight "Armory Tour" (1.5 * Time.hour) 27 4.5 False
-    , Sight "Tartine Bakery" Time.hour 10 4.1 False
-    , Sight "Have Brunch" (2 * Time.hour) 25 4.2 False
-    , Sight "Get catcalled at BART" (5 * Time.minute) 0 1.6 False
-    , Sight "Buy a painting at \"Stuff\"" (45 * Time.minute) 400 4.7 False
-    , Sight "McDonalds at 24th" (20 * Time.minute) 5 2.8 False
+    [ Sight "Eat a Burrito" (Duration.minutes 30) 7 4.6 False
+    , Sight "Buy drugs in Dolores park" Duration.hour 20 4.8 False
+    , Sight "Armory Tour" (Duration.hours 1.5) 27 4.5 False
+    , Sight "Tartine Bakery" Duration.hour 10 4.1 False
+    , Sight "Have Brunch" (Duration.hours 2) 25 4.2 False
+    , Sight "Get catcalled at BART" (Duration.minutes 5) 0 1.6 False
+    , Sight "Buy a painting at \"Stuff\"" (Duration.minutes 45) 400 4.7 False
+    , Sight "McDonalds at 24th" (Duration.minutes 20) 5 2.8 False
     ]
