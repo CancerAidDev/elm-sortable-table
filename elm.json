@@ -15,7 +15,6 @@
         "elm/json": "1.1.2 <= v < 2.0.0",
         "elm/time": "1.0.0 <= v < 2.0.0",
         "justinmimbs/date": "3.1.2 <= v < 4.0.0",
-        "rundis/elm-bootstrap": "5.0.0 <= v < 6.0.0",
         "samhstn/time-format": "1.0.0 <= v < 2.0.0"
     },
     "test-dependencies": {}

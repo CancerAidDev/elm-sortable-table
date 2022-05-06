@@ -57,11 +57,11 @@ is not that crazy.
 
 -}
 
-import Bootstrap.Table as Table
 import Date
 import Html exposing (Attribute, Html)
 import Html.Attributes as Attr
 import Html.Events as E
+import Html.Keyed as Keyed
 import Json.Decode as Json
 import String
 import Time
@@ -197,7 +197,6 @@ type alias Customizations data msg =
     , tfoot : Maybe (HtmlDetails msg)
     , tbodyAttrs : List (Attribute msg)
     , rowAttrs : data -> List (Attribute msg)
-    , tableOptions : List (Table.TableOption msg)
     }
 
 
@@ -221,7 +220,6 @@ defaultCustomizations =
     , tfoot = Nothing
     , tbodyAttrs = []
     , rowAttrs = simpleRowAttrs
-    , tableOptions = []
     }
 
 
@@ -263,7 +261,7 @@ simpleTheadHelp ( name, status, onClickAction ) =
                         )
                     ]
     in
-    Html.div
+    Html.th
         [ onClickAction
         , Attr.style "cursor" "pointer"
         ]
@@ -533,19 +531,28 @@ view (Config { toId, toMsg, columns, customizations }) state data =
         theadDetails =
             customizations.thead (List.map (toHeaderInfo state toMsg) columns)
 
-        theadCells =
-            List.map (\cell -> Table.th [] [ cell ]) theadDetails.children
+        thead =
+            Html.thead theadDetails.attributes theadDetails.children
 
-        theadAttrs =
-            List.map Table.headAttr theadDetails.attributes
+        tbody =
+            Keyed.node "tbody" customizations.tbodyAttrs <|
+                List.map (viewRow toId columns customizations.rowAttrs) sortedData
+
+        withFoot =
+            case customizations.tfoot of
+                Nothing ->
+                    [ tbody ]
+
+                Just { attributes, children } ->
+                    [ Html.tfoot attributes children, tbody ]
     in
-    Table.table
-        { options = customizations.tableOptions
-        , thead = Table.thead theadAttrs [ Table.tr [] theadCells ]
-        , tbody =
-            Table.keyedTBody customizations.tbodyAttrs
-                (List.map (viewRow toId columns customizations.rowAttrs) sortedData)
-        }
+    Html.table customizations.tableAttrs <|
+        case customizations.caption of
+            Nothing ->
+                thead :: withFoot
+
+            Just { attributes, children } ->
+                Html.caption attributes children :: thead :: withFoot
 
 
 toHeaderInfo : State -> (State -> msg) -> ColumnData data msg -> ( String, Status, Attribute msg )
@@ -582,32 +589,29 @@ onClick name isReversed toMsg =
             Json.map2 State (Json.succeed name) (Json.succeed isReversed)
 
 
-viewRow : (data -> String) -> List (ColumnData data msg) -> (data -> List (Attribute msg)) -> data -> ( String, Table.Row msg )
+viewRow : (data -> String) -> List (ColumnData data msg) -> (data -> List (Attribute msg)) -> data -> ( String, Html msg )
 viewRow toId columns toRowAttrs data =
     ( toId data
     , viewRowHelp columns toRowAttrs data
     )
 
 
-viewRowHelp : List (ColumnData data msg) -> (data -> List (Attribute msg)) -> data -> Table.Row msg
+viewRowHelp : List (ColumnData data msg) -> (data -> List (Attribute msg)) -> data -> Html msg
 viewRowHelp columns toRowAttrs data =
     let
         rowAttrs =
-            data |> toRowAttrs |> List.map Table.rowAttr
+            data |> toRowAttrs
     in
-    Table.tr rowAttrs (List.map (viewCell data) columns)
+    Html.tr rowAttrs (List.map (viewCell data) columns)
 
 
-viewCell : data -> ColumnData data msg -> Table.Cell msg
+viewCell : data -> ColumnData data msg -> Html msg
 viewCell data { viewData } =
     let
         details =
             viewData data
-
-        cellAttributes =
-            List.map Table.cellAttr details.attributes
     in
-    Table.td cellAttributes details.children
+    Html.td details.attributes details.children
 
 
 
