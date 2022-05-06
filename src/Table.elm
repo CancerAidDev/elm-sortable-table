@@ -62,8 +62,6 @@ import Date
 import Html exposing (Attribute, Html)
 import Html.Attributes as Attr
 import Html.Events as E
-import Html.Keyed as Keyed
-import Html.Lazy exposing (lazy2, lazy3)
 import Json.Decode as Json
 import String
 import Time
@@ -274,7 +272,7 @@ simpleTheadHelp ( name, status, onClickAction ) =
 
 nbsp : String
 nbsp =
-    " "
+    "\u{00A0}"
 
 
 icon : String -> String -> Html msg
