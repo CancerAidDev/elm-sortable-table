@@ -308,7 +308,7 @@ simpleTheadHelp ( name, status, onClickAction ) =
 
 nbsp : String
 nbsp =
-    " "
+    "\u{00A0}"
 
 
 icon : String -> String -> Html msg
