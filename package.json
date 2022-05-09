@@ -4,7 +4,7 @@
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
-    "build:examples": "parcel build examples/presidents.html examples/travel.html --dist-dir examples/dist"
+    "build:examples": "parcel build examples/presidents.html examples/travel.html --dist-dir docs"
   },
   "devDependencies": {
     "@parcel/transformer-elm": "^2.5.0",
