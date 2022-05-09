@@ -4,4 +4,5 @@ elm-stuff
 repl-temp-*
 
 node_modules
+dist
 .parcel-cache
