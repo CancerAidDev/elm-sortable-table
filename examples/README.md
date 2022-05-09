@@ -23,15 +23,14 @@ To see the examples _with_ CSS, run the following commands:
 ```bash
 git clone https://github.com/canceraiddev/elm-sortable-table.git
 cd elm-sortable-table
-cd examples
-elm-make Presidents.elm --yes --output=elm.js
-elm-reactor
+yarn install
+yarn parcel examples/presidents.html
 ```
 
-Then open [localhost:8000/index.html](http://localhost:8000/index.html) in your browser. That HTML file loads in some CSS and whatever code is in `elm.js`. So if you want to see the second example with CSS, you can compile it like this:
+Then open [localhost:1234/index.html](http://localhost:8000/index.html) in your browser. That HTML file loads in some CSS and whatever code is in `elm.js`. So if you want to see the second example with CSS, you can compile it like this:
 
 ```bash
-elm-make Travel.elm --yes --output=elm.js
+yarn parcel examples/travel.html
 ```
 
 As you make changes, you will want to recompile the Elm code with `elm-make`.
