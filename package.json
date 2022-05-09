@@ -4,7 +4,7 @@
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
-    "build:pages": "parcel build examples/presidents.html examples/travel.html --dist-dir docs --public-url elm-sortable-table"
+    "build:pages": "parcel build examples/presidents.html examples/travel.html --dist-dir docs --public-url /elm-sortable-table"
   },
   "devDependencies": {
     "@parcel/transformer-elm": "^2.5.0",
