@@ -1,22 +1,24 @@
 module Table.Remote exposing
     ( view
     , config, stringColumn, intColumn, floatColumn, dateColumn, posixColumn
-    , State, initialSort, remoteOrder
+    , State, initialSort
+    , SortOrder(..), sortOrder
     , Column, customColumn, veryCustomColumn, DateColumnConfig, PosixColumnConfig
     , Sorter, unsortable, increasingBy, decreasingBy
     , increasingOrDecreasingBy, decreasingOrIncreasingBy
     , Config, customConfig, Customizations, HtmlDetails, htmlDetails, Status(..)
     , defaultCustomizations
-    , getId
     )
 
-{-| This library helps you create sortable tables. The crucial feature is that it
+{-| Variant of Table for remote data that is sorted before being given to the view.
+The Sorter type is purely for visually representing the sort state of the table data
+that is sorted elsewhere (e.g. sorted paginated data from a server).
+
+This library helps you create sortable tables. The crucial feature is that it
 lets you own your data separately and keep it in whatever format is best for
 you. This way you are free to change your data without worrying about the table
 &ldquo;getting out of sync&rdquo; with the data. Having a single source of
 truth is pretty great!
-
-Useful for remote data that is sorted before being given to the view. The Sorter type is purely for visually representing the sort state of the table data that is sorted elsewhere (e.g. sorted paginated data from a server).
 
 I recommend checking out the [examples] to get a feel for how it works.
 
@@ -35,7 +37,12 @@ I recommend checking out the [examples] to get a feel for how it works.
 
 # State
 
-@docs State, initialSort, id, remoteOrder
+@docs State, initialSort
+
+
+# Sort Order
+
+@docs SortOrder, sortOrder
 
 
 # Crazy Customization
@@ -61,6 +68,7 @@ is not that crazy.
 -}
 
 import Date
+import Dict
 import Html exposing (Attribute, Html)
 import Html.Attributes as Attr
 import Html.Events as E
@@ -76,42 +84,8 @@ import Time.Format
 
 {-| Tracks which column to sort by.
 -}
-type State data msg
-    = State (Column data msg) Bool
-
-
-{-| -}
-getId : State data msg -> String
-getId (State (Column columnData) _) =
-    columnData.id
-
-
-{-| -}
-remoteOrder : State data msg -> String
-remoteOrder (State (Column columnData) isReversed) =
-    case columnData.sorter of
-        None ->
-            "asc"
-
-        Increasing ->
-            "asc"
-
-        Decreasing ->
-            "desc"
-
-        IncOrDec ->
-            if isReversed then
-                "desc"
-
-            else
-                "asc"
-
-        DecOrInc ->
-            if isReversed then
-                "asc"
-
-            else
-                "desc"
+type State
+    = State String Bool
 
 
 {-| Create a table state. By providing a column name, you determine which
@@ -123,9 +97,58 @@ yachts to be sorted by length by default, you might say:
     Table.initialSort "Length"
 
 -}
-initialSort : Column data msg -> State data msg
-initialSort column =
-    State column False
+initialSort : String -> State
+initialSort header =
+    State header False
+
+
+
+-- SORT ORDER
+
+
+{-| Sort Order data type
+-}
+type SortOrder
+    = Asc
+    | Desc
+
+
+{-| Get the sort order for the table. Used to request sorting of remote data.
+-}
+sortOrder : Config data msg -> State -> Maybe SortOrder
+sortOrder (Config { columns }) (State columnId isReversed) =
+    columns
+        |> List.map (\{ id, sorter } -> ( id, sorter ))
+        |> Dict.fromList
+        |> Dict.get columnId
+        |> Maybe.andThen (sortOrderForSorter isReversed)
+
+
+sortOrderForSorter : Bool -> Sorter -> Maybe SortOrder
+sortOrderForSorter isReversed sorter =
+    case sorter of
+        None ->
+            Nothing
+
+        Increasing ->
+            Just Asc
+
+        Decreasing ->
+            Just Desc
+
+        IncOrDec ->
+            if isReversed then
+                Just Desc
+
+            else
+                Just Asc
+
+        DecOrInc ->
+            if isReversed then
+                Just Asc
+
+            else
+                Just Desc
 
 
 
@@ -141,7 +164,7 @@ It should only appear in `view` code.
 type Config data msg
     = Config
         { toId : data -> String
-        , toMsg : State data msg -> msg
+        , toMsg : State -> msg
         , columns : List (ColumnData data msg)
         , customizations : Customizations data msg
         }
@@ -183,7 +206,7 @@ See the [examples] to get a better feel for this!
 -}
 config :
     { toId : data -> String
-    , toMsg : State data msg -> msg
+    , toMsg : State -> msg
     , columns : List (Column data msg)
     }
     -> Config data msg
@@ -200,7 +223,7 @@ config { toId, toMsg, columns } =
 -}
 customConfig :
     { toId : data -> String
-    , toMsg : State data msg -> msg
+    , toMsg : State -> msg
     , columns : List (Column data msg)
     , customizations : Customizations data msg
     }
@@ -564,7 +587,7 @@ statically, and look for a different library if you need something crazier than
 that.
 
 -}
-view : Config data msg -> State data msg -> List data -> Html msg
+view : Config data msg -> State -> List data -> Html msg
 view (Config { toId, toMsg, columns, customizations }) state data =
     let
         -- Data should be sorted by caller
@@ -598,38 +621,38 @@ view (Config { toId, toMsg, columns, customizations }) state data =
                 Html.caption attributes children :: thead :: withFoot
 
 
-toHeaderInfo : State data msg -> (State data msg -> msg) -> ColumnData data msg -> ( String, Status, Attribute msg )
-toHeaderInfo (State (Column stateColumnData) isReversed) toMsg columnData =
+toHeaderInfo : State -> (State -> msg) -> ColumnData data msg -> ( String, Status, Attribute msg )
+toHeaderInfo (State columnId isReversed) toMsg columnData =
     case columnData.sorter of
         None ->
-            ( columnData.name, Unsortable, onClick stateColumnData isReversed toMsg )
+            ( columnData.name, Unsortable, onClick columnId isReversed toMsg )
 
         Increasing ->
-            ( columnData.name, Sortable (columnData.id == stateColumnData.id), onClick columnData False toMsg )
+            ( columnData.name, Sortable (columnData.id == columnId), onClick columnId False toMsg )
 
         Decreasing ->
-            ( columnData.name, Sortable (columnData.id == stateColumnData.id), onClick columnData False toMsg )
+            ( columnData.name, Sortable (columnData.id == columnId), onClick columnId False toMsg )
 
         IncOrDec ->
-            if columnData.id == stateColumnData.id then
-                ( columnData.name, Reversible (Just isReversed), onClick columnData (not isReversed) toMsg )
+            if columnData.id == columnId then
+                ( columnData.name, Reversible (Just isReversed), onClick columnId (not isReversed) toMsg )
 
             else
-                ( columnData.name, Reversible Nothing, onClick columnData False toMsg )
+                ( columnData.name, Reversible Nothing, onClick columnId False toMsg )
 
         DecOrInc ->
-            if columnData.id == stateColumnData.id then
-                ( columnData.name, Reversible (Just isReversed), onClick columnData (not isReversed) toMsg )
+            if columnData.id == columnId then
+                ( columnData.name, Reversible (Just isReversed), onClick columnId (not isReversed) toMsg )
 
             else
-                ( columnData.name, Reversible Nothing, onClick columnData False toMsg )
+                ( columnData.name, Reversible Nothing, onClick columnId False toMsg )
 
 
-onClick : ColumnData data msg -> Bool -> (State data msg -> msg) -> Attribute msg
-onClick columnData isReversed toMsg =
+onClick : String -> Bool -> (State -> msg) -> Attribute msg
+onClick columnId isReversed toMsg =
     E.on "click" <|
         Json.map toMsg <|
-            Json.map2 State (Json.succeed <| Column columnData) (Json.succeed isReversed)
+            Json.map2 State (Json.succeed columnId) (Json.succeed isReversed)
 
 
 viewRow : (data -> String) -> List (ColumnData data msg) -> (data -> List (Attribute msg)) -> data -> ( String, Html msg )
