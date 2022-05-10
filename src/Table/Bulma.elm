@@ -24,6 +24,7 @@ We recommend checking out the [examples] to get a feel for how it works.
 
 -}
 
+import Accessibility.Aria as Aria
 import Html exposing (Attribute, Html)
 import Html.Attributes as Attr
 import Html.Events as E
@@ -72,12 +73,24 @@ pagination attributes toMsg (PaginatedInternal.State ({ currentPage, total, page
             ceiling (toFloat total / toFloat pageSize)
 
         pageButton page =
+            let
+                currentPageAttrs =
+                    if currentPage == page then
+                        [ Attr.class "is-current"
+                        , Aria.currentPage
+                        , Aria.label ("Page " ++ String.fromInt page)
+                        ]
+
+                    else
+                        [ Aria.label ("Go to page " ++ String.fromInt page) ]
+            in
             Html.li []
                 [ Html.a
-                    [ Attr.class "pagination-link"
-                    , Attr.classList [ ( "is-current", currentPage == page ) ]
-                    , E.onClick (toMsg (PaginatedInternal.State { state | currentPage = page }))
-                    ]
+                    (currentPageAttrs
+                        ++ [ Attr.class "pagination-link"
+                           , E.onClick (toMsg (PaginatedInternal.State { state | currentPage = page }))
+                           ]
+                    )
                     [ Html.text (String.fromInt page) ]
                 ]
 
@@ -89,7 +102,13 @@ pagination attributes toMsg (PaginatedInternal.State ({ currentPage, total, page
                     [ Html.text "…" ]
                 ]
     in
-    Html.nav (Attr.class "pagination" :: attributes)
+    Html.nav
+        ([ Attr.class "pagination"
+         , Attr.attribute "role" "navigation"
+         , Aria.label "pagination"
+         ]
+            ++ attributes
+        )
         [ Html.a
             [ Attr.class "pagination-previous"
             , E.onClick

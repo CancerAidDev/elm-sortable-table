@@ -15,7 +15,8 @@
         "elm/html": "1.0.0 <= v < 2.0.0",
         "elm/time": "1.0.0 <= v < 2.0.0",
         "justinmimbs/date": "4.0.0 <= v < 5.0.0",
-        "samhstn/time-format": "1.0.0 <= v < 2.0.0"
+        "samhstn/time-format": "1.0.0 <= v < 2.0.0",
+        "tesk9/accessible-html": "5.0.0 <= v < 6.0.0"
     },
     "test-dependencies": {}
 }

@@ -15,7 +15,7 @@ you. This way you are free to change your data without worrying about the table
 &ldquo;getting out of sync&rdquo; with the data. Having a single source of
 truth is pretty great!
 
-I recommend checking out the [examples] to get a feel for how it works.
+We recommend checking out the [examples] to get a feel for how it works.
 
 [examples]: https://github.com/canceraiddev/elm-sortable-table/tree/main/examples
 

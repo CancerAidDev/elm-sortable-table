@@ -17,7 +17,8 @@
             "elm/url": "1.0.0",
             "ianmackenzie/elm-units": "2.9.0",
             "justinmimbs/date": "4.0.1",
-            "samhstn/time-format": "1.0.0"
+            "samhstn/time-format": "1.0.0",
+            "tesk9/accessible-html": "5.0.0"
         },
         "indirect": {
             "elm/bytes": "1.0.8",

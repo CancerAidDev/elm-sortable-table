@@ -7,6 +7,7 @@ const db = knex({
   connection: {
     filename: "./examples/server/elements.db",
   },
+  useNullAsDefault: true,
 });
 
 const app = express();
