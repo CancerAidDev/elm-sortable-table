@@ -30,7 +30,6 @@ import Html.Attributes as Attr
 import Html.Events as E
 import Table
 import Table.Paginated as Paginated
-import Table.Paginated.Internal as PaginatedInternal
 
 
 {-| Default `Table` customizations for the Bulma.
@@ -66,11 +65,14 @@ For customization pass in attributes as required. E.g.
     { defaultCustomizations | pagination = pagination [ class "is-centered" ] }
 
 -}
-pagination : List (Attribute msg) -> (PaginatedInternal.State -> msg) -> PaginatedInternal.State -> Html msg
-pagination attributes toMsg (PaginatedInternal.State ({ currentPage, total, pageSize } as state)) =
+pagination : List (Attribute msg) -> (Paginated.State -> msg) -> Paginated.State -> Html msg
+pagination attributes toMsg state =
     let
+        currentPage =
+            Paginated.getCurrentPage state
+
         pageCount =
-            ceiling (toFloat total / toFloat pageSize)
+            Paginated.getPageCount state
 
         pageButton page =
             let
@@ -88,7 +90,7 @@ pagination attributes toMsg (PaginatedInternal.State ({ currentPage, total, page
                 [ Html.a
                     (currentPageAttrs
                         ++ [ Attr.class "pagination-link"
-                           , E.onClick (toMsg (PaginatedInternal.State { state | currentPage = page }))
+                           , E.onClick (toMsg (Paginated.setCurrentPage state page))
                            ]
                     )
                     [ Html.text (String.fromInt page) ]
@@ -133,29 +135,13 @@ pagination attributes toMsg (PaginatedInternal.State ({ currentPage, total, page
         )
         [ Html.a
             [ Attr.class "pagination-previous"
-            , E.onClick
-                (toMsg
-                    (if currentPage > 1 then
-                        PaginatedInternal.State { state | currentPage = currentPage - 1 }
-
-                     else
-                        PaginatedInternal.State state
-                    )
-                )
+            , E.onClick (toMsg (Paginated.previousPage state))
             ]
             [ Html.text "Previous" ]
         , Html.a
             [ Attr.class "pagination-next"
             , Attr.disabled (currentPage >= pageCount)
-            , E.onClick
-                (toMsg
-                    (if currentPage < pageCount then
-                        PaginatedInternal.State { state | currentPage = currentPage + 1 }
-
-                     else
-                        PaginatedInternal.State state
-                    )
-                )
+            , E.onClick (toMsg (Paginated.nextPage state))
             ]
             [ Html.text "Next" ]
         , Html.ul

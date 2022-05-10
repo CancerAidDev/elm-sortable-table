@@ -1,7 +1,9 @@
 module Table.Paginated exposing
     ( view
     , config, stringColumn, intColumn, floatColumn, dateColumn, posixColumn
-    , State, initialState, getSortColumn, getCurrentPage, setCurrentPage, getPageSize, setPageSize, setTotal
+    , State, initialState
+    , getSortColumn, getCurrentPage, setCurrentPage, getPageSize, setPageSize, setTotal, getPageCount
+    , nextPage, previousPage
     , SortOrder(..), sortOrder
     , Column, customColumn, veryCustomColumn, DateColumnConfig, PosixColumnConfig
     , Sorter, unsortable, increasingBy, decreasingBy
@@ -38,7 +40,9 @@ We recommend checking out the [examples] to get a feel for how it works.
 
 # State
 
-@docs State, initialState, getSortColumn, getCurrentPage, setCurrentPage, getPageSize, setPageSize, setTotal
+@docs State, initialState
+@docs getSortColumn, getCurrentPage, setCurrentPage, getPageSize, setPageSize, setTotal, getPageCount
+@docs nextPage, previousPage
 
 
 # Sort Order
@@ -68,13 +72,13 @@ is not that crazy.
 
 -}
 
+import Accessibility.Aria exposing (currentPage)
 import Date
 import Dict
 import Html exposing (Attribute, Html)
 import Html.Attributes as Attr
 import Html.Events as E
 import Html.Keyed as Keyed
-import Table.Paginated.Internal as Internal
 import Time
 import Time.Format
 
@@ -85,8 +89,14 @@ import Time.Format
 
 {-| Tracks pagination state of table.
 -}
-type alias State =
-    Internal.State
+type State
+    = State
+        { currentPage : Int
+        , pageSize : Int
+        , total : Int
+        , sortColumn : String
+        , isReversed : Bool
+        }
 
 
 {-| Create a table state. By providing a column name, you determine which
@@ -100,7 +110,7 @@ yachts to be sorted by length by default, you might say:
 -}
 initialState : String -> Int -> State
 initialState sortColumn pageSize =
-    Internal.State
+    State
         { currentPage = 1
         , pageSize = pageSize
         , total = 0
@@ -112,14 +122,14 @@ initialState sortColumn pageSize =
 {-| Get the column currently sorted by.
 -}
 getSortColumn : State -> String
-getSortColumn (Internal.State { sortColumn }) =
+getSortColumn (State { sortColumn }) =
     sortColumn
 
 
 {-| Get the current page number.
 -}
 getCurrentPage : State -> Int
-getCurrentPage (Internal.State { currentPage }) =
+getCurrentPage (State { currentPage }) =
     currentPage
 
 
@@ -129,23 +139,23 @@ Useful for setting the page number base on URL query parameters.
 
 -}
 setCurrentPage : State -> Int -> State
-setCurrentPage (Internal.State state) currentPage =
-    Internal.State { state | currentPage = currentPage }
+setCurrentPage (State state) currentPage =
+    State { state | currentPage = currentPage }
 
 
 {-| Get the page size (i.e. the max number of items shown in the table
 at one time).
 -}
 getPageSize : State -> Int
-getPageSize (Internal.State { pageSize }) =
+getPageSize (State { pageSize }) =
     pageSize
 
 
 {-| Set the page size.
 -}
 setPageSize : State -> Int -> State
-setPageSize (Internal.State state) pageSize =
-    Internal.State { state | pageSize = pageSize }
+setPageSize (State state) pageSize =
+    State { state | pageSize = pageSize }
 
 
 {-| Set the total number of items that can be viewed in the table.
@@ -158,8 +168,37 @@ E.g. if there are 20 rows of data and the page size is 5, the total parameter is
 
 -}
 setTotal : State -> Int -> State
-setTotal (Internal.State state) total =
-    Internal.State { state | total = total }
+setTotal (State state) total =
+    State { state | total = total }
+
+
+{-| Get the page count (i.e. the total number of pages that can be displayed).
+-}
+getPageCount : State -> Int
+getPageCount (State { total, pageSize }) =
+    ceiling (toFloat total / toFloat pageSize)
+
+
+{-| Move to the previous page. Do nothing if the currentPage is the first page.
+-}
+previousPage : State -> State
+previousPage ((State ({ currentPage } as internalState)) as state) =
+    if currentPage > 1 then
+        State { internalState | currentPage = currentPage - 1 }
+
+    else
+        state
+
+
+{-| Move to the next page. Do nothing if the currentPage is the last page.
+-}
+nextPage : State -> State
+nextPage ((State ({ currentPage } as internalState)) as state) =
+    if currentPage < getPageCount state then
+        State { internalState | currentPage = currentPage + 1 }
+
+    else
+        state
 
 
 
@@ -176,7 +215,7 @@ type SortOrder
 {-| Get the sort order for the table. Used to request sorting of remote data.
 -}
 sortOrder : Config data msg -> State -> Maybe SortOrder
-sortOrder (Config { columns }) (Internal.State { sortColumn, isReversed }) =
+sortOrder (Config { columns }) (State { sortColumn, isReversed }) =
     columns
         |> List.map (\{ id, sorter } -> ( id, sorter ))
         |> Dict.fromList
@@ -696,8 +735,8 @@ viewTable (Config { toId, toMsg, columns, customizations }) state data =
                 Html.caption attributes children :: thead :: withFoot
 
 
-toHeaderInfo : State -> (Internal.State -> msg) -> ColumnData data msg -> ( String, Status, Attribute msg )
-toHeaderInfo ((Internal.State { sortColumn, isReversed }) as state) toMsg { id, name, sorter } =
+toHeaderInfo : State -> (State -> msg) -> ColumnData data msg -> ( String, Status, Attribute msg )
+toHeaderInfo ((State { sortColumn, isReversed }) as state) toMsg { id, name, sorter } =
     case sorter of
         None ->
             ( name, Unsortable, onClick state sortColumn isReversed toMsg )
@@ -723,9 +762,9 @@ toHeaderInfo ((Internal.State { sortColumn, isReversed }) as state) toMsg { id, 
                 ( name, Reversible Nothing, onClick state id False toMsg )
 
 
-onClick : State -> String -> Bool -> (Internal.State -> msg) -> Attribute msg
-onClick (Internal.State state) sortColumn isReversed toMsg =
-    E.onClick <| toMsg (Internal.State { state | sortColumn = sortColumn, isReversed = isReversed, currentPage = 1 })
+onClick : State -> String -> Bool -> (State -> msg) -> Attribute msg
+onClick (State state) sortColumn isReversed toMsg =
+    E.onClick <| toMsg (State { state | sortColumn = sortColumn, isReversed = isReversed, currentPage = 1 })
 
 
 viewRow : (data -> String) -> List (ColumnData data msg) -> (data -> List (Attribute msg)) -> data -> ( String, Html msg )
