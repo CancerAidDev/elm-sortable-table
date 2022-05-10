@@ -1,14 +1,13 @@
 module Table.Paginated exposing
     ( view
     , config, stringColumn, intColumn, floatColumn, dateColumn, posixColumn
-    , State, initialSort, getSortColumn, getCurrentPage, getPageSize
+    , State, initialState, getSortColumn, getCurrentPage, setCurrentPage, getPageSize, setPageSize, setTotal
     , SortOrder(..), sortOrder
     , Column, customColumn, veryCustomColumn, DateColumnConfig, PosixColumnConfig
     , Sorter, unsortable, increasingBy, decreasingBy
     , increasingOrDecreasingBy, decreasingOrIncreasingBy
     , Config, customConfig, Customizations, HtmlDetails, htmlDetails, Status(..)
     , defaultCustomizations
-    , setTotal
     )
 
 {-| Variant of Table for paginated remote data that is sorted before being given
@@ -39,7 +38,7 @@ I recommend checking out the [examples] to get a feel for how it works.
 
 # State
 
-@docs State, initialSort, getSortColumn, getCurrentPage, getPageSize, setPageCount
+@docs State, initialState, getSortColumn, getCurrentPage, setCurrentPage, getPageSize, setPageSize, setTotal
 
 
 # Sort Order
@@ -75,6 +74,7 @@ import Html exposing (Attribute, Html)
 import Html.Attributes as Attr
 import Html.Events as E
 import Html.Keyed as Keyed
+import Table.Paginated.Internal as Internal
 import Time
 import Time.Format
 
@@ -85,14 +85,8 @@ import Time.Format
 
 {-| Tracks pagination state of table.
 -}
-type State
-    = State
-        { currentPage : Int
-        , pageSize : Int
-        , total : Int
-        , sortColumn : String
-        , isReversed : Bool
-        }
+type alias State =
+    Internal.State
 
 
 {-| Create a table state. By providing a column name, you determine which
@@ -101,38 +95,48 @@ yachts to be sorted by length by default, you might say:
 
     import Table
 
-    Table.initialSort "Length"
+    Table.initialState "Length"
 
 -}
-initialSort : String -> State
-initialSort sortColumn =
-    State
-        { currentPage = 5
-        , pageSize = 10
-        , total = 10
+initialState : String -> Int -> State
+initialState sortColumn pageSize =
+    Internal.State
+        { currentPage = 1
+        , pageSize = pageSize
+        , total = 0
         , sortColumn = sortColumn
         , isReversed = False
         }
 
 
 getSortColumn : State -> String
-getSortColumn (State { sortColumn }) =
+getSortColumn (Internal.State { sortColumn }) =
     sortColumn
 
 
 getCurrentPage : State -> Int
-getCurrentPage (State { currentPage }) =
+getCurrentPage (Internal.State { currentPage }) =
     currentPage
 
 
+setCurrentPage : State -> Int -> State
+setCurrentPage (Internal.State state) currentPage =
+    Internal.State { state | currentPage = currentPage }
+
+
 getPageSize : State -> Int
-getPageSize (State { pageSize }) =
+getPageSize (Internal.State { pageSize }) =
     pageSize
 
 
+setPageSize : State -> Int -> State
+setPageSize (Internal.State state) pageSize =
+    Internal.State { state | pageSize = pageSize }
+
+
 setTotal : State -> Int -> State
-setTotal (State state) total =
-    State { state | total = total }
+setTotal (Internal.State state) total =
+    Internal.State { state | total = total }
 
 
 
@@ -149,7 +153,7 @@ type SortOrder
 {-| Get the sort order for the table. Used to request sorting of remote data.
 -}
 sortOrder : Config data msg -> State -> Maybe SortOrder
-sortOrder (Config { columns }) (State { sortColumn, isReversed }) =
+sortOrder (Config { columns }) (Internal.State { sortColumn, isReversed }) =
     columns
         |> List.map (\{ id, sorter } -> ( id, sorter ))
         |> Dict.fromList
@@ -289,6 +293,7 @@ type alias Customizations data msg =
     , tfoot : Maybe (HtmlDetails msg)
     , tbodyAttrs : List (Attribute msg)
     , rowAttrs : data -> List (Attribute msg)
+    , pagination : (State -> msg) -> State -> Html msg
     }
 
 
@@ -312,6 +317,7 @@ defaultCustomizations =
     , tfoot = Nothing
     , tbodyAttrs = []
     , rowAttrs = simpleRowAttrs
+    , pagination = \_ _ -> Html.text ""
     }
 
 
@@ -621,10 +627,10 @@ that.
 
 -}
 view : Config data msg -> State -> List data -> Html msg
-view config_ state data =
+view ((Config { toMsg, customizations }) as config_) state data =
     Html.div []
         [ viewTable config_ state data
-        , viewPagination config_ state
+        , customizations.pagination toMsg state
         ]
 
 
@@ -662,99 +668,8 @@ viewTable (Config { toId, toMsg, columns, customizations }) state data =
                 Html.caption attributes children :: thead :: withFoot
 
 
-viewPagination : Config data msg -> State -> Html msg
-viewPagination (Config { toMsg }) (State ({ currentPage, total, pageSize } as state)) =
-    let
-        pageCount =
-            ceiling (toFloat total / toFloat pageSize)
-
-        pageButton page =
-            Html.li []
-                [ Html.a
-                    [ Attr.class "pagination-link"
-                    , Attr.classList [ ( "is-current", currentPage == page ) ]
-                    , E.onClick (toMsg (State { state | currentPage = page }))
-                    ]
-                    [ Html.text (String.fromInt page) ]
-                ]
-
-        ellipsisButton =
-            Html.li []
-                [ Html.span
-                    [ Attr.style "class" "pagination-ellipsis"
-                    ]
-                    [ Html.text "…" ]
-                ]
-    in
-    Html.nav [ Attr.class "pagination is-centered" ]
-        [ Html.a
-            [ Attr.class "pagination-previous"
-            , E.onClick
-                (toMsg
-                    (if currentPage > 1 then
-                        State { state | currentPage = currentPage - 1 }
-
-                     else
-                        State state
-                    )
-                )
-            ]
-            [ Html.text "Previous" ]
-        , Html.a
-            [ Attr.class "pagination-next"
-            , Attr.disabled (currentPage >= pageCount)
-            , E.onClick
-                (toMsg
-                    (if currentPage < pageCount then
-                        State { state | currentPage = currentPage + 1 }
-
-                     else
-                        State state
-                    )
-                )
-            ]
-            [ Html.text "Next" ]
-        , Html.ul
-            [ Attr.class "pagination-list"
-            ]
-            (let
-                start =
-                    if currentPage > 3 then
-                        [ pageButton 1
-                        , ellipsisButton
-                        ]
-
-                    else
-                        List.range 1 (currentPage + 1)
-                            |> List.map (\page -> pageButton page)
-
-                middle =
-                    if currentPage > 3 && currentPage < pageCount - 2 then
-                        [ pageButton (currentPage - 1)
-                        , pageButton currentPage
-                        , pageButton (currentPage + 1)
-                        ]
-
-                    else
-                        []
-
-                end =
-                    if currentPage < pageCount - 2 then
-                        [ ellipsisButton
-                        , pageButton pageCount
-                        ]
-
-                    else
-                        List.range (currentPage - 2) pageCount
-                            |> List.map (\page -> pageButton page)
-             in
-             [ start, middle, end ] |> List.concat
-            )
-        ]
-
-
-toHeaderInfo : State -> (State -> msg) -> ColumnData data msg -> ( String, Status, Attribute msg )
-toHeaderInfo ((State { sortColumn, isReversed }) as state) toMsg { id, name, sorter } =
+toHeaderInfo : State -> (Internal.State -> msg) -> ColumnData data msg -> ( String, Status, Attribute msg )
+toHeaderInfo ((Internal.State { sortColumn, isReversed }) as state) toMsg { id, name, sorter } =
     case sorter of
         None ->
             ( name, Unsortable, onClick state sortColumn isReversed toMsg )
@@ -780,9 +695,9 @@ toHeaderInfo ((State { sortColumn, isReversed }) as state) toMsg { id, name, sor
                 ( name, Reversible Nothing, onClick state id False toMsg )
 
 
-onClick : State -> String -> Bool -> (State -> msg) -> Attribute msg
-onClick (State state) sortColumn isReversed toMsg =
-    E.onClick <| toMsg (State { state | sortColumn = sortColumn, isReversed = isReversed, currentPage = 1 })
+onClick : State -> String -> Bool -> (Internal.State -> msg) -> Attribute msg
+onClick (Internal.State state) sortColumn isReversed toMsg =
+    E.onClick <| toMsg (Internal.State { state | sortColumn = sortColumn, isReversed = isReversed, currentPage = 1 })
 
 
 viewRow : (data -> String) -> List (ColumnData data msg) -> (data -> List (Attribute msg)) -> data -> ( String, Html msg )

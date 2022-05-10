@@ -6,7 +6,9 @@ import Html.Attributes exposing (class)
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as DecodePipeline
-import Table.Paginated as PaginatedTable exposing (defaultCustomizations)
+import Table exposing (defaultCustomizations)
+import Table.Bulma as BulmaTable
+import Table.Paginated as PaginatedTable
 import Url.Builder as UrlBuilder
 
 
@@ -16,7 +18,7 @@ main =
         { init = always init
         , update = update
         , view = view
-        , subscriptions = \_ -> Sub.none
+        , subscriptions = always Sub.none
         }
 
 
@@ -35,7 +37,7 @@ init =
     let
         model =
             { elements = []
-            , tableState = PaginatedTable.initialSort "atomic_number"
+            , tableState = PaginatedTable.initialState "atomic_number" 10
             }
     in
     ( model, getElements model.tableState )
@@ -78,7 +80,7 @@ update msg model =
 
 view : Model -> Html Msg
 view { elements, tableState } =
-    div []
+    div [ class "p-4" ]
         [ h1 [ class "title" ] [ text "Paginated Table of Elements" ]
         , PaginatedTable.view config tableState elements
         ]
@@ -90,6 +92,10 @@ view { elements, tableState } =
 
 config : PaginatedTable.Config Element Msg
 config =
+    let
+        defaultCustomizations =
+            BulmaTable.defaultCustomizationsPaginated
+    in
     PaginatedTable.customConfig
         { toId = String.fromInt << .atomicNumber
         , toMsg = SetTableState
@@ -99,7 +105,11 @@ config =
             , PaginatedTable.stringColumn "symbol" "Symbol" .symbol
             , PaginatedTable.stringColumn "type" "Type" .tipe
             ]
-        , customizations = { defaultCustomizations | tableAttrs = [ class "table is-fullwidth" ] }
+        , customizations =
+            { defaultCustomizations
+                | tableAttrs = defaultCustomizations.tableAttrs ++ [ class "is-fullwidth" ]
+                , pagination = BulmaTable.pagination [ class "is-centered" ]
+            }
         }
 
 
