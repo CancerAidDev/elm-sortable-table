@@ -112,6 +112,8 @@ getElements state =
                         |> Maybe.map sortOrderToString
                         |> Maybe.withDefault "asc"
                     )
+                , UrlBuilder.string "currentPage" (String.fromInt (PaginatedTable.getCurrentPage state))
+                , UrlBuilder.string "perPage" (String.fromInt (PaginatedTable.getPageSize state))
                 ]
         , expect = Http.expectJson GotElements (Decode.list decoderElement)
         }

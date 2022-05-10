@@ -1,7 +1,7 @@
 module Table.Paginated exposing
     ( view
     , config, stringColumn, intColumn, floatColumn, dateColumn, posixColumn
-    , State, initialSort, getSortColumn
+    , State, initialSort, getSortColumn, getCurrentPage, getPageSize
     , SortOrder(..), sortOrder
     , Column, customColumn, veryCustomColumn, DateColumnConfig, PosixColumnConfig
     , Sorter, unsortable, increasingBy, decreasingBy
@@ -38,7 +38,7 @@ I recommend checking out the [examples] to get a feel for how it works.
 
 # State
 
-@docs State, initialSort, getSortColumn
+@docs State, initialSort, getSortColumn, getCurrentPage, getPageSize
 
 
 # Sort Order
@@ -88,7 +88,7 @@ type State
     = State
         { currentPage : Int
         , pageSize : Int
-        , pages : Maybe Int
+        , pageCount : Int
         , sortColumn : String
         , isReversed : Bool
         }
@@ -106,9 +106,9 @@ yachts to be sorted by length by default, you might say:
 initialSort : String -> State
 initialSort sortColumn =
     State
-        { currentPage = 0
+        { currentPage = 5
         , pageSize = 10
-        , pages = Nothing
+        , pageCount = 10
         , sortColumn = sortColumn
         , isReversed = False
         }
@@ -117,6 +117,16 @@ initialSort sortColumn =
 getSortColumn : State -> String
 getSortColumn (State { sortColumn }) =
     sortColumn
+
+
+getCurrentPage : State -> Int
+getCurrentPage (State { currentPage }) =
+    currentPage
+
+
+getPageSize : State -> Int
+getPageSize (State { pageSize }) =
+    pageSize
 
 
 
@@ -605,7 +615,15 @@ that.
 
 -}
 view : Config data msg -> State -> List data -> Html msg
-view (Config { toId, toMsg, columns, customizations }) state data =
+view config_ state data =
+    Html.div []
+        [ viewTable config_ state data
+        , viewPagination config_ state
+        ]
+
+
+viewTable : Config data msg -> State -> List data -> Html msg
+viewTable (Config { toId, toMsg, columns, customizations }) state data =
     let
         -- Data should be sorted by caller
         sortedData =
@@ -638,6 +656,98 @@ view (Config { toId, toMsg, columns, customizations }) state data =
                 Html.caption attributes children :: thead :: withFoot
 
 
+
+-- <nav class="pagination" role="navigation" aria-label="pagination">
+--   <a class="pagination-previous">Previous</a>
+--   <a class="pagination-next">Next page</a>
+--   <ul class="pagination-list">
+--     <li>
+--       <a class="pagination-link" aria-label="Goto page 1">1</a>
+--     </li>
+--     <li>
+--       <span class="pagination-ellipsis">&hellip;</span>
+--     </li>
+--     <li>
+--       <a class="pagination-link" aria-label="Goto page 45">45</a>
+--     </li>
+--     <li>
+--       <a class="pagination-link is-current" aria-label="Page 46" aria-current="page">46</a>
+--     </li>
+--     <li>
+--       <a class="pagination-link" aria-label="Goto page 47">47</a>
+--     </li>
+--     <li>
+--       <span class="pagination-ellipsis">&hellip;</span>
+--     </li>
+--     <li>
+--       <a class="pagination-link" aria-label="Goto page 86">86</a>
+--     </li>
+--   </ul>
+-- </nav>
+
+
+viewPagination : Config data msg -> State -> Html msg
+viewPagination (Config { toMsg }) (State ({ currentPage, pageCount } as state)) =
+    let
+        button attrs children =
+            Html.a (Attr.style "cursor" "pointer" :: attrs) children
+
+        pageButton page =
+            Html.li []
+                [ button [ E.onClick (toMsg (State { state | currentPage = page })) ]
+                    [ Html.text (String.fromInt page) ]
+                ]
+
+        ellipsisButton =
+            Html.li [] [ button [] [ Html.text "…" ] ]
+    in
+    Html.nav []
+        [ button
+            [ Attr.disabled (currentPage <= 1)
+            , E.onClick (toMsg (State { state | currentPage = currentPage - 1 }))
+            ]
+            [ Html.text "Previous" ]
+        , Html.ul []
+            (let
+                start =
+                    if currentPage > 3 then
+                        [ pageButton 1
+                        , ellipsisButton
+                        ]
+
+                    else
+                        List.range 1 (currentPage + 1)
+                            |> List.map (\page -> pageButton page)
+
+                middle =
+                    if currentPage > 3 && currentPage < pageCount - 2 then
+                        [ pageButton (currentPage - 1)
+                        , pageButton currentPage
+                        , pageButton (currentPage + 1)
+                        ]
+
+                    else
+                        []
+
+                end =
+                    if currentPage < pageCount - 2 then
+                        [ ellipsisButton
+                        , pageButton pageCount
+                        ]
+
+                    else
+                        []
+             in
+             [ start, middle, end ] |> List.concat
+            )
+        , button
+            [ Attr.disabled (currentPage >= pageCount)
+            , E.onClick (toMsg (State { state | currentPage = currentPage + 1 }))
+            ]
+            [ Html.text "Next" ]
+        ]
+
+
 toHeaderInfo : State -> (State -> msg) -> ColumnData data msg -> ( String, Status, Attribute msg )
 toHeaderInfo ((State { sortColumn, isReversed }) as state) toMsg { id, name, sorter } =
     case sorter of
@@ -667,7 +777,7 @@ toHeaderInfo ((State { sortColumn, isReversed }) as state) toMsg { id, name, sor
 
 onClick : State -> String -> Bool -> (State -> msg) -> Attribute msg
 onClick (State state) sortColumn isReversed toMsg =
-    E.onClick <| toMsg (State { state | sortColumn = sortColumn, isReversed = isReversed })
+    E.onClick <| toMsg (State { state | sortColumn = sortColumn, isReversed = isReversed, currentPage = 1 })
 
 
 viewRow : (data -> String) -> List (ColumnData data msg) -> (data -> List (Attribute msg)) -> data -> ( String, Html msg )
