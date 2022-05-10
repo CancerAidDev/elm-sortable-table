@@ -1,4 +1,28 @@
-module Table.Bulma exposing (defaultCustomizations, defaultCustomizationsPaginated, pagination)
+module Table.Bulma exposing
+    ( defaultCustomizations, defaultCustomizationsPaginated
+    , pagination
+    )
+
+{-| [Bulma](https://bulma.io) specific customizations for `Table` and `Table.Paginated`.
+
+We recommend checking out the [examples] to get a feel for how it works.
+
+[examples]: https://github.com/canceraiddev/elm-sortable-table/tree/main/examples
+
+
+# Customization
+
+
+## Custom Tables
+
+@docs defaultCustomizations, defaultCustomizationsPaginated
+
+
+## Pagination
+
+@docs pagination
+
+-}
 
 import Html exposing (Attribute, Html)
 import Html.Attributes as Attr
@@ -8,6 +32,8 @@ import Table.Paginated as Paginated
 import Table.Paginated.Internal as PaginatedInternal
 
 
+{-| Default `Table` customizations for the Bulma.
+-}
 defaultCustomizations : Table.Customizations data msg
 defaultCustomizations =
     let
@@ -17,7 +43,7 @@ defaultCustomizations =
     { defaultCustomizations_ | tableAttrs = [ Attr.class "table" ] }
 
 
-{-| The customizations used in `config` by default.
+{-| Default `Table.Paginated` customizations for the Bulma.
 -}
 defaultCustomizationsPaginated : Paginated.Customizations data msg
 defaultCustomizationsPaginated =
@@ -31,6 +57,14 @@ defaultCustomizationsPaginated =
     }
 
 
+{-| Pagination view component using Bulma structure and classes. See Bulma
+[docs](https://bulma.io/documentation/components/pagination/).
+
+For customization pass in attributes as required. E.g.
+
+    { defaultCustomizations | pagination = pagination [ class "is-centered" ] }
+
+-}
 pagination : List (Attribute msg) -> (PaginatedInternal.State -> msg) -> PaginatedInternal.State -> Html msg
 pagination attributes toMsg (PaginatedInternal.State ({ currentPage, total, pageSize } as state)) =
     let

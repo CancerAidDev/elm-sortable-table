@@ -6,8 +6,9 @@ This library also lets you customize `<caption>`, `<tbody>`, `<tr>`, etc. for yo
 
 ## Examples
 
-1. [U.S. Presidents by Birth Place](https://canceraiddev.github.io/elm-sortable-table/presidents.html) / [Code](https://github.com/canceraiddev/elm-sortable-table/blob/master/examples/Presidents.elm)
-2. [Travel Planner for the Mission District in San Francisco](https://canceraiddev.github.io/elm-sortable-table/travel.html) / [Code](https://github.com/canceraiddev/elm-sortable-table/blob/master/examples/Travel.elm)
+1. [U.S. Presidents by Birth Place](https://canceraiddev.github.io/elm-sortable-table/presidents.html) / [Code](https://github.com/canceraiddev/elm-sortable-table/blob/main/examples/Presidents.elm)
+2. [Travel Planner for the Mission District in San Francisco](https://canceraiddev.github.io/elm-sortable-table/travel.html) / [Code](https://github.com/canceraiddev/elm-sortable-table/blob/main/examples/Travel.elm)
+3. Paginated Table of Elements / [Code](https://github.com/canceraiddev/elm-sortable-table/blob/main/examples/Elements.elm)
 
 ## Usage Rules
 
@@ -34,7 +35,7 @@ It may not be obvious at first glance, but this library follows The Elm Architec
 
 - `update` &mdash; This is a little hidden, but it is there. When you create a `Table.Config`, you provide a function `Table.State -> msg` so that whoever is rendering the table has a chance to update the table state.
 
-I took some minor liberties with `update` to make the API a bit simpler. It would be more legit if `Table.Config` took a `Table.Msg -> msg` argument and you needed to use `Table.update : Table.Msg -> Table.State -> Table.State` to deal with it. I decided not to go this route because `Table.Msg` and `Table.State` would both allocate the same amount of memory and one version the overall API a bit tougher. As we learn from how people use this, we may see that the explicit `update` function is actually a better way to go though!
+We took some minor liberties with `update` to make the API a bit simpler. It would be more legit if `Table.Config` took a `Table.Msg -> msg` argument and you needed to use `Table.update : Table.Msg -> Table.State -> Table.State` to deal with it. I decided not to go this route because `Table.Msg` and `Table.State` would both allocate the same amount of memory and one version the overall API a bit tougher. As we learn from how people use this, we may see that the explicit `update` function is actually a better way to go though!
 
 ### Single Source of Truth
 
@@ -46,7 +47,7 @@ Point is, **when creating an API like this, own as little state as possible.** H
 
 ### Simple By Default
 
-I designed this library to have a very smooth learning curve. As you read the docs, you start with the simplest functions. Predefined columns, and very little customization. This makes it easier for the reader to build a basic intuition for how things work.
+We designed this library to have a very smooth learning curve. As you read the docs, you start with the simplest functions. Predefined columns, and very little customization. This makes it easier for the reader to build a basic intuition for how things work.
 
 The trick is that all these simple functions are defined in terms of crazier ones that allow for more customization. As the user **NEEDS** that complexity, they can read on and gradually use the parts that are relevant to them. This means the user never finds themselves in a situation where they have to learn a bunch of stuff that does not actually matter to them. At the same time, that stuff is there when they need it.
 

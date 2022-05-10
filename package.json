@@ -5,8 +5,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:pages": "parcel build examples/presidents.html examples/travel.html --dist-dir docs --public-url /elm-sortable-table",
-    "server:run": "node examples/server/index.js"
+    "build:pages": "parcel build examples/presidents.html examples/travel.html --dist-dir docs --public-url /elm-sortable-table"
   },
   "devDependencies": {
     "@parcel/transformer-elm": "^2.5.0",

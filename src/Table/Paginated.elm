@@ -21,9 +21,9 @@ you. This way you are free to change your data without worrying about the table
 &ldquo;getting out of sync&rdquo; with the data. Having a single source of
 truth is pretty great!
 
-I recommend checking out the [examples] to get a feel for how it works.
+We recommend checking out the [examples] to get a feel for how it works.
 
-[examples]: https://github.com/canceraiddev/elm-sortable-table/tree/master/examples
+[examples]: https://github.com/canceraiddev/elm-sortable-table/tree/main/examples
 
 
 # View
@@ -109,31 +109,54 @@ initialState sortColumn pageSize =
         }
 
 
+{-| Get the column currently sorted by.
+-}
 getSortColumn : State -> String
 getSortColumn (Internal.State { sortColumn }) =
     sortColumn
 
 
+{-| Get the current page number.
+-}
 getCurrentPage : State -> Int
 getCurrentPage (Internal.State { currentPage }) =
     currentPage
 
 
+{-| Set the current page number.
+
+Useful for setting the page number base on URL query parameters.
+
+-}
 setCurrentPage : State -> Int -> State
 setCurrentPage (Internal.State state) currentPage =
     Internal.State { state | currentPage = currentPage }
 
 
+{-| Get the page size (i.e. the max number of items shown in the table
+at one time).
+-}
 getPageSize : State -> Int
 getPageSize (Internal.State { pageSize }) =
     pageSize
 
 
+{-| Set the page size.
+-}
 setPageSize : State -> Int -> State
 setPageSize (Internal.State state) pageSize =
     Internal.State { state | pageSize = pageSize }
 
 
+{-| Set the total number of items that can be viewed in the table.
+
+You will probably find this out when you do the first request for data and this
+value maybe change on subsequent requests.
+
+E.g. if there are 20 rows of data and the page size is 5, the total parameter is
+20 (while the number of pages will be 4)
+
+-}
 setTotal : State -> Int -> State
 setTotal (Internal.State state) total =
     Internal.State { state | total = total }
@@ -238,7 +261,7 @@ You provide the following information in your table configuration:
 See the [examples] to get a better feel for this!
 
 [keyed]: http://package.elm-lang.org/packages/elm-lang/html/latest/Html-Keyed
-[examples]: https://github.com/canceraiddev/elm-sortable-table/tree/master/examples
+[examples]: https://github.com/canceraiddev/elm-sortable-table/tree/main/examples
 
 -}
 config :
@@ -308,6 +331,11 @@ type alias HtmlDetails msg =
 
 
 {-| The customizations used in `config` by default.
+
+Pagination controls are not included as there is not a standard way to layout
+these components. See Table.Bulma for an configuration of pagination controls
+using the bulma UI framework.
+
 -}
 defaultCustomizations : Customizations data msg
 defaultCustomizations =
