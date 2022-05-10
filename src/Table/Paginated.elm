@@ -72,7 +72,6 @@ is not that crazy.
 
 -}
 
-import Accessibility.Aria exposing (currentPage)
 import Date
 import Dict
 import Html exposing (Attribute, Html)
