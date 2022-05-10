@@ -39,7 +39,7 @@ app.get("/elements", (req, res) => {
     pagination.currentPage = page;
     pagination.from = offset;
     pagination.data = rows;
-    res.json(rows);
+    res.json(pagination);
   });
 });
 

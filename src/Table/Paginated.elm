@@ -8,6 +8,7 @@ module Table.Paginated exposing
     , increasingOrDecreasingBy, decreasingOrIncreasingBy
     , Config, customConfig, Customizations, HtmlDetails, htmlDetails, Status(..)
     , defaultCustomizations
+    , setTotal
     )
 
 {-| Variant of Table for paginated remote data that is sorted before being given
@@ -38,7 +39,7 @@ I recommend checking out the [examples] to get a feel for how it works.
 
 # State
 
-@docs State, initialSort, getSortColumn, getCurrentPage, getPageSize
+@docs State, initialSort, getSortColumn, getCurrentPage, getPageSize, setPageCount
 
 
 # Sort Order
@@ -88,7 +89,7 @@ type State
     = State
         { currentPage : Int
         , pageSize : Int
-        , pageCount : Int
+        , total : Int
         , sortColumn : String
         , isReversed : Bool
         }
@@ -108,7 +109,7 @@ initialSort sortColumn =
     State
         { currentPage = 5
         , pageSize = 10
-        , pageCount = 10
+        , total = 10
         , sortColumn = sortColumn
         , isReversed = False
         }
@@ -127,6 +128,11 @@ getCurrentPage (State { currentPage }) =
 getPageSize : State -> Int
 getPageSize (State { pageSize }) =
     pageSize
+
+
+setTotal : State -> Int -> State
+setTotal (State state) total =
+    State { state | total = total }
 
 
 
@@ -656,58 +662,61 @@ viewTable (Config { toId, toMsg, columns, customizations }) state data =
                 Html.caption attributes children :: thead :: withFoot
 
 
-
--- <nav class="pagination" role="navigation" aria-label="pagination">
---   <a class="pagination-previous">Previous</a>
---   <a class="pagination-next">Next page</a>
---   <ul class="pagination-list">
---     <li>
---       <a class="pagination-link" aria-label="Goto page 1">1</a>
---     </li>
---     <li>
---       <span class="pagination-ellipsis">&hellip;</span>
---     </li>
---     <li>
---       <a class="pagination-link" aria-label="Goto page 45">45</a>
---     </li>
---     <li>
---       <a class="pagination-link is-current" aria-label="Page 46" aria-current="page">46</a>
---     </li>
---     <li>
---       <a class="pagination-link" aria-label="Goto page 47">47</a>
---     </li>
---     <li>
---       <span class="pagination-ellipsis">&hellip;</span>
---     </li>
---     <li>
---       <a class="pagination-link" aria-label="Goto page 86">86</a>
---     </li>
---   </ul>
--- </nav>
-
-
 viewPagination : Config data msg -> State -> Html msg
-viewPagination (Config { toMsg }) (State ({ currentPage, pageCount } as state)) =
+viewPagination (Config { toMsg }) (State ({ currentPage, total, pageSize } as state)) =
     let
-        button attrs children =
-            Html.a (Attr.style "cursor" "pointer" :: attrs) children
+        pageCount =
+            ceiling (toFloat total / toFloat pageSize)
 
         pageButton page =
             Html.li []
-                [ button [ E.onClick (toMsg (State { state | currentPage = page })) ]
+                [ Html.a
+                    [ Attr.class "pagination-link"
+                    , Attr.classList [ ( "is-current", currentPage == page ) ]
+                    , E.onClick (toMsg (State { state | currentPage = page }))
+                    ]
                     [ Html.text (String.fromInt page) ]
                 ]
 
         ellipsisButton =
-            Html.li [] [ button [] [ Html.text "…" ] ]
+            Html.li []
+                [ Html.span
+                    [ Attr.style "class" "pagination-ellipsis"
+                    ]
+                    [ Html.text "…" ]
+                ]
     in
-    Html.nav []
-        [ button
-            [ Attr.disabled (currentPage <= 1)
-            , E.onClick (toMsg (State { state | currentPage = currentPage - 1 }))
+    Html.nav [ Attr.class "pagination is-centered" ]
+        [ Html.a
+            [ Attr.class "pagination-previous"
+            , E.onClick
+                (toMsg
+                    (if currentPage > 1 then
+                        State { state | currentPage = currentPage - 1 }
+
+                     else
+                        State state
+                    )
+                )
             ]
             [ Html.text "Previous" ]
-        , Html.ul []
+        , Html.a
+            [ Attr.class "pagination-next"
+            , Attr.disabled (currentPage >= pageCount)
+            , E.onClick
+                (toMsg
+                    (if currentPage < pageCount then
+                        State { state | currentPage = currentPage + 1 }
+
+                     else
+                        State state
+                    )
+                )
+            ]
+            [ Html.text "Next" ]
+        , Html.ul
+            [ Attr.class "pagination-list"
+            ]
             (let
                 start =
                     if currentPage > 3 then
@@ -736,15 +745,11 @@ viewPagination (Config { toMsg }) (State ({ currentPage, pageCount } as state)) 
                         ]
 
                     else
-                        []
+                        List.range (currentPage - 2) pageCount
+                            |> List.map (\page -> pageButton page)
              in
              [ start, middle, end ] |> List.concat
             )
-        , button
-            [ Attr.disabled (currentPage >= pageCount)
-            , E.onClick (toMsg (State { state | currentPage = currentPage + 1 }))
-            ]
-            [ Html.text "Next" ]
         ]
 
 

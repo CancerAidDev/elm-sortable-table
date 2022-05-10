@@ -2,6 +2,7 @@ module Elements exposing (main)
 
 import Browser
 import Html exposing (Html, div, h1, text)
+import Html.Attributes exposing (class)
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as DecodePipeline
@@ -46,7 +47,7 @@ init =
 
 type Msg
     = SetTableState PaginatedTable.State
-    | GotElements (Result Http.Error (List Element))
+    | GotPage (Result Http.Error (Page Element))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -57,10 +58,15 @@ update msg model =
             , getElements newState
             )
 
-        GotElements result ->
+        GotPage result ->
             case result of
-                Ok elements ->
-                    ( { model | elements = elements }, Cmd.none )
+                Ok page ->
+                    ( { model
+                        | elements = page.data
+                        , tableState = PaginatedTable.setTotal model.tableState page.total
+                      }
+                    , Cmd.none
+                    )
 
                 Err _ ->
                     ( model, Cmd.none )
@@ -73,7 +79,7 @@ update msg model =
 view : Model -> Html Msg
 view { elements, tableState } =
     div []
-        [ h1 [] [ text "Paginated Table of Elements" ]
+        [ h1 [ class "title" ] [ text "Paginated Table of Elements" ]
         , PaginatedTable.view config tableState elements
         ]
 
@@ -93,7 +99,7 @@ config =
             , PaginatedTable.stringColumn "symbol" "Symbol" .symbol
             , PaginatedTable.stringColumn "type" "Type" .tipe
             ]
-        , customizations = defaultCustomizations
+        , customizations = { defaultCustomizations | tableAttrs = [ class "table is-fullwidth" ] }
         }
 
 
@@ -115,7 +121,7 @@ getElements state =
                 , UrlBuilder.string "currentPage" (String.fromInt (PaginatedTable.getCurrentPage state))
                 , UrlBuilder.string "perPage" (String.fromInt (PaginatedTable.getPageSize state))
                 ]
-        , expect = Http.expectJson GotElements (Decode.list decoderElement)
+        , expect = Http.expectJson GotPage decoderPage
         }
 
 
@@ -148,3 +154,20 @@ decoderElement =
         |> DecodePipeline.required "element" Decode.string
         |> DecodePipeline.required "symbol" Decode.string
         |> DecodePipeline.required "type" Decode.string
+
+
+
+-- PAGINATION RESULT
+
+
+type alias Page data =
+    { total : Int
+    , data : List data
+    }
+
+
+decoderPage : Decode.Decoder (Page Element)
+decoderPage =
+    Decode.succeed Page
+        |> DecodePipeline.required "total" Decode.int
+        |> DecodePipeline.required "data" (Decode.list decoderElement)
