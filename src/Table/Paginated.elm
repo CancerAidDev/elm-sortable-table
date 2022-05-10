@@ -1,7 +1,7 @@
-module Table.Remote exposing
+module Table.Paginated exposing
     ( view
     , config, stringColumn, intColumn, floatColumn, dateColumn, posixColumn
-    , State, initialSort
+    , State, initialSort, getSortColumn
     , SortOrder(..), sortOrder
     , Column, customColumn, veryCustomColumn, DateColumnConfig, PosixColumnConfig
     , Sorter, unsortable, increasingBy, decreasingBy
@@ -10,9 +10,10 @@ module Table.Remote exposing
     , defaultCustomizations
     )
 
-{-| Variant of Table for remote data that is sorted before being given to the view.
-The Sorter type is purely for visually representing the sort state of the table data
-that is sorted elsewhere (e.g. sorted paginated data from a server).
+{-| Variant of Table for paginated remote data that is sorted before being given
+to the view. The Sorter type is only used for visually representing the sort
+state of the table data that is sorted elsewhere (e.g. sorted paginated data
+from a server).
 
 This library helps you create sortable tables. The crucial feature is that it
 lets you own your data separately and keep it in whatever format is best for
@@ -37,7 +38,7 @@ I recommend checking out the [examples] to get a feel for how it works.
 
 # State
 
-@docs State, initialSort
+@docs State, initialSort, getSortColumn
 
 
 # Sort Order
@@ -73,7 +74,6 @@ import Html exposing (Attribute, Html)
 import Html.Attributes as Attr
 import Html.Events as E
 import Html.Keyed as Keyed
-import Json.Decode as Json
 import Time
 import Time.Format
 
@@ -82,10 +82,16 @@ import Time.Format
 -- STATE
 
 
-{-| Tracks which column to sort by.
+{-| Tracks pagination state of table.
 -}
 type State
-    = State String Bool
+    = State
+        { currentPage : Int
+        , pageSize : Int
+        , pages : Maybe Int
+        , sortColumn : String
+        , isReversed : Bool
+        }
 
 
 {-| Create a table state. By providing a column name, you determine which
@@ -98,8 +104,19 @@ yachts to be sorted by length by default, you might say:
 
 -}
 initialSort : String -> State
-initialSort header =
-    State header False
+initialSort sortColumn =
+    State
+        { currentPage = 0
+        , pageSize = 10
+        , pages = Nothing
+        , sortColumn = sortColumn
+        , isReversed = False
+        }
+
+
+getSortColumn : State -> String
+getSortColumn (State { sortColumn }) =
+    sortColumn
 
 
 
@@ -116,11 +133,11 @@ type SortOrder
 {-| Get the sort order for the table. Used to request sorting of remote data.
 -}
 sortOrder : Config data msg -> State -> Maybe SortOrder
-sortOrder (Config { columns }) (State columnId isReversed) =
+sortOrder (Config { columns }) (State { sortColumn, isReversed }) =
     columns
         |> List.map (\{ id, sorter } -> ( id, sorter ))
         |> Dict.fromList
-        |> Dict.get columnId
+        |> Dict.get sortColumn
         |> Maybe.andThen (sortOrderForSorter isReversed)
 
 
@@ -622,37 +639,35 @@ view (Config { toId, toMsg, columns, customizations }) state data =
 
 
 toHeaderInfo : State -> (State -> msg) -> ColumnData data msg -> ( String, Status, Attribute msg )
-toHeaderInfo (State columnId isReversed) toMsg columnData =
-    case columnData.sorter of
+toHeaderInfo ((State { sortColumn, isReversed }) as state) toMsg { id, name, sorter } =
+    case sorter of
         None ->
-            ( columnData.name, Unsortable, onClick columnId isReversed toMsg )
+            ( name, Unsortable, onClick state sortColumn isReversed toMsg )
 
         Increasing ->
-            ( columnData.name, Sortable (columnData.id == columnId), onClick columnId False toMsg )
+            ( name, Sortable (id == sortColumn), onClick state id False toMsg )
 
         Decreasing ->
-            ( columnData.name, Sortable (columnData.id == columnId), onClick columnId False toMsg )
+            ( name, Sortable (id == sortColumn), onClick state id False toMsg )
 
         IncOrDec ->
-            if columnData.id == columnId then
-                ( columnData.name, Reversible (Just isReversed), onClick columnId (not isReversed) toMsg )
+            if id == sortColumn then
+                ( name, Reversible (Just isReversed), onClick state id (not isReversed) toMsg )
 
             else
-                ( columnData.name, Reversible Nothing, onClick columnId False toMsg )
+                ( name, Reversible Nothing, onClick state id False toMsg )
 
         DecOrInc ->
-            if columnData.id == columnId then
-                ( columnData.name, Reversible (Just isReversed), onClick columnId (not isReversed) toMsg )
+            if id == sortColumn then
+                ( name, Reversible (Just isReversed), onClick state id (not isReversed) toMsg )
 
             else
-                ( columnData.name, Reversible Nothing, onClick columnId False toMsg )
+                ( name, Reversible Nothing, onClick state id False toMsg )
 
 
-onClick : String -> Bool -> (State -> msg) -> Attribute msg
-onClick columnId isReversed toMsg =
-    E.on "click" <|
-        Json.map toMsg <|
-            Json.map2 State (Json.succeed columnId) (Json.succeed isReversed)
+onClick : State -> String -> Bool -> (State -> msg) -> Attribute msg
+onClick (State state) sortColumn isReversed toMsg =
+    E.onClick <| toMsg (State { state | sortColumn = sortColumn, isReversed = isReversed })
 
 
 viewRow : (data -> String) -> List (ColumnData data msg) -> (data -> List (Attribute msg)) -> data -> ( String, Html msg )

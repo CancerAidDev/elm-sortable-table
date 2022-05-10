@@ -62,7 +62,6 @@ import Html exposing (Attribute, Html)
 import Html.Attributes as Attr
 import Html.Events as E
 import Html.Keyed as Keyed
-import Json.Decode as Json
 import String
 import Time
 import Time.Format
@@ -584,9 +583,7 @@ toHeaderInfo (State sortName isReversed) toMsg { name, sorter } =
 
 onClick : String -> Bool -> (State -> msg) -> Attribute msg
 onClick name isReversed toMsg =
-    E.on "click" <|
-        Json.map toMsg <|
-            Json.map2 State (Json.succeed name) (Json.succeed isReversed)
+    E.onClick <| toMsg (State name isReversed)
 
 
 viewRow : (data -> String) -> List (ColumnData data msg) -> (data -> List (Attribute msg)) -> data -> ( String, Html msg )
