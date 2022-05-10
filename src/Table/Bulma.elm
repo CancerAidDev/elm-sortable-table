@@ -94,13 +94,35 @@ pagination attributes toMsg (PaginatedInternal.State ({ currentPage, total, page
                     [ Html.text (String.fromInt page) ]
                 ]
 
-        ellipsisButton =
-            Html.li []
-                [ Html.span
-                    [ Attr.style "class" "pagination-ellipsis"
-                    ]
-                    [ Html.text "…" ]
+        start =
+            if currentPage > 3 then
+                [ pageButton 1
+                , ellipsisButton
                 ]
+
+            else
+                List.range 1 (currentPage + 1)
+                    |> List.map (\page -> pageButton page)
+
+        middle =
+            if currentPage > 3 && currentPage < pageCount - 2 then
+                [ pageButton (currentPage - 1)
+                , pageButton currentPage
+                , pageButton (currentPage + 1)
+                ]
+
+            else
+                []
+
+        end =
+            if currentPage < pageCount - 2 then
+                [ ellipsisButton
+                , pageButton pageCount
+                ]
+
+            else
+                List.range (currentPage - 2) pageCount
+                    |> List.map (\page -> pageButton page)
     in
     Html.nav
         ([ Attr.class "pagination"
@@ -137,39 +159,16 @@ pagination attributes toMsg (PaginatedInternal.State ({ currentPage, total, page
             ]
             [ Html.text "Next" ]
         , Html.ul
-            [ Attr.class "pagination-list"
+            [ Attr.class "pagination-list" ]
+            ([ start, middle, end ] |> List.concat)
+        ]
+
+
+ellipsisButton : Html msg
+ellipsisButton =
+    Html.li []
+        [ Html.span
+            [ Attr.style "class" "pagination-ellipsis"
             ]
-            (let
-                start =
-                    if currentPage > 3 then
-                        [ pageButton 1
-                        , ellipsisButton
-                        ]
-
-                    else
-                        List.range 1 (currentPage + 1)
-                            |> List.map (\page -> pageButton page)
-
-                middle =
-                    if currentPage > 3 && currentPage < pageCount - 2 then
-                        [ pageButton (currentPage - 1)
-                        , pageButton currentPage
-                        , pageButton (currentPage + 1)
-                        ]
-
-                    else
-                        []
-
-                end =
-                    if currentPage < pageCount - 2 then
-                        [ ellipsisButton
-                        , pageButton pageCount
-                        ]
-
-                    else
-                        List.range (currentPage - 2) pageCount
-                            |> List.map (\page -> pageButton page)
-             in
-             [ start, middle, end ] |> List.concat
-            )
+            [ Html.text "…" ]
         ]
