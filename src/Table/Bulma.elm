@@ -32,7 +32,7 @@ import Table
 import Table.Paginated as Paginated
 
 
-{-| Default `Table` customizations for the Bulma.
+{-| Default `Table` customizations for Bulma.
 -}
 defaultCustomizations : Table.Customizations data msg
 defaultCustomizations =
@@ -43,7 +43,7 @@ defaultCustomizations =
     { defaultCustomizations_ | tableAttrs = [ Attr.class "table" ] }
 
 
-{-| Default `Table.Paginated` customizations for the Bulma.
+{-| Default `Table.Paginated` customizations for Bulma.
 -}
 defaultCustomizationsPaginated : Paginated.Customizations data msg
 defaultCustomizationsPaginated =

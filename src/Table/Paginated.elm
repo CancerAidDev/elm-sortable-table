@@ -104,7 +104,7 @@ yachts to be sorted by length by default, you might say:
 
     import Table
 
-    Table.initialState "Length"
+    Table.initialState "Length" pageSize
 
 -}
 initialState : String -> Int -> State
@@ -204,7 +204,7 @@ nextPage ((State ({ currentPage } as internalState)) as state) =
 -- SORT ORDER
 
 
-{-| Sort Order data type
+{-| Sort Order data type corresponding to SQL order by.
 -}
 type SortOrder
     = Asc
