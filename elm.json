@@ -1,7 +1,7 @@
 {
     "type": "package",
     "name": "canceraiddev/elm-sortable-table",
-    "summary": "Sortable tables for data of any shape.",
+    "summary": "Sortable (and paginated) tables for data of any shape.",
     "license": "BSD-3-Clause",
     "version": "1.0.0",
     "exposed-modules": [
