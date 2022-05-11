@@ -107,7 +107,7 @@ config =
             ]
         , customizations =
             { defaultCustomizations
-                | tableAttrs = defaultCustomizations.tableAttrs ++ [ class "is-fullwidth" ]
+                | tableAttrs = defaultCustomizations.tableAttrs ++ [ class "is-fullwidth is-hoverable" ]
                 , pagination = BulmaTable.pagination [ class "is-centered" ]
             }
         }
