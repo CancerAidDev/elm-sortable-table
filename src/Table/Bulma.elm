@@ -125,6 +125,14 @@ pagination attributes toMsg state =
             else
                 List.range (currentPage - 2) pageCount
                     |> List.map (\page -> pageButton page)
+
+        buttons =
+            if pageCount <= 5 then
+                List.range 1 pageCount
+                    |> List.map (\page -> pageButton page)
+
+            else
+                [ start, middle, end ] |> List.concat
     in
     Html.nav
         ([ Attr.class "pagination"
@@ -146,7 +154,7 @@ pagination attributes toMsg state =
             [ Html.text "Next" ]
         , Html.ul
             [ Attr.class "pagination-list" ]
-            ([ start, middle, end ] |> List.concat)
+            buttons
         ]
 
 
