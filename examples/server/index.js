@@ -11,7 +11,7 @@ const db = knex({
 });
 
 const app = express();
-const port = 3000;
+const port = 3421;
 
 app.get("/elements", (req, res) => {
   const reqData = req.query;
