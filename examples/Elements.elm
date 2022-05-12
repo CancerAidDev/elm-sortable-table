@@ -65,7 +65,7 @@ update msg model =
                 Ok page ->
                     ( { model
                         | elements = page.data
-                        , tableState = PaginatedTable.setTotal model.tableState page.total
+                        , tableState = PaginatedTable.setTotal page.total model.tableState
                       }
                     , Cmd.none
                     )

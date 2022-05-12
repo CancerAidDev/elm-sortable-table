@@ -10,6 +10,7 @@ module Table.Paginated exposing
     , increasingOrDecreasingBy, decreasingOrIncreasingBy
     , Config, customConfig, Customizations, HtmlDetails, htmlDetails, Status(..)
     , defaultCustomizations
+    , RenderSettings, renderPageButton
     )
 
 {-| Variant of Table for paginated remote data that is sorted before being given
@@ -69,6 +70,11 @@ is not that crazy.
 
 @docs Config, customConfig, Customizations, HtmlDetails, htmlDetails, Status
 @docs defaultCustomizations
+
+
+## Render Settings
+
+@docs RenderSettings, renderPageButton
 
 -}
 
@@ -137,8 +143,8 @@ getCurrentPage (State { currentPage }) =
 Useful for setting the page number base on URL query parameters.
 
 -}
-setCurrentPage : State -> Int -> State
-setCurrentPage (State state) currentPage =
+setCurrentPage : Int -> State -> State
+setCurrentPage currentPage (State state) =
     State { state | currentPage = currentPage }
 
 
@@ -152,8 +158,8 @@ getPageSize (State { pageSize }) =
 
 {-| Set the page size.
 -}
-setPageSize : State -> Int -> State
-setPageSize (State state) pageSize =
+setPageSize : Int -> State -> State
+setPageSize pageSize (State state) =
     State { state | pageSize = pageSize }
 
 
@@ -166,8 +172,8 @@ E.g. if there are 20 rows of data and the page size is 5, the total parameter is
 20 (while the number of pages will be 4)
 
 -}
-setTotal : State -> Int -> State
-setTotal (State state) total =
+setTotal : Int -> State -> State
+setTotal total (State state) =
     State { state | total = total }
 
 
@@ -848,3 +854,38 @@ sort by best time by default, but also see the other order.
 increasingOrDecreasingBy : Sorter
 increasingOrDecreasingBy =
     IncOrDec
+
+
+{-| Render settings.
+-}
+type alias RenderSettings =
+    { windowSize : Int, minPages : Int }
+
+
+{-| Check if a page button should rendered.
+-}
+renderPageButton : RenderSettings -> State -> Int -> Bool
+renderPageButton { windowSize, minPages } state page =
+    let
+        currentPage =
+            getCurrentPage state
+
+        pageCount =
+            getPageCount state
+    in
+    if page == 1 || page == pageCount then
+        -- Always render first and last page
+        True
+
+    else if page <= minPages && currentPage < minPages then
+        True
+
+    else if page > pageCount - minPages && currentPage > pageCount - minPages + 1 then
+        True
+
+    else if page <= currentPage + windowSize // 2 && page >= currentPage - windowSize // 2 then
+        -- Render page inside the window around the currentPage
+        True
+
+    else
+        False

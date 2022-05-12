@@ -53,7 +53,7 @@ defaultCustomizationsPaginated =
     in
     { defaultCustomizations_
         | tableAttrs = [ Attr.class "table" ]
-        , pagination = pagination []
+        , pagination = pagination { windowSize = 3, minPages = 5 } []
     }
 
 
@@ -65,8 +65,8 @@ For customization pass in attributes as required. E.g.
     { defaultCustomizations | pagination = pagination [ class "is-centered" ] }
 
 -}
-pagination : List (Attribute msg) -> (Paginated.State -> msg) -> Paginated.State -> Html msg
-pagination attributes toMsg state =
+pagination : Paginated.RenderSettings -> List (Attribute msg) -> (Paginated.State -> msg) -> Paginated.State -> Html msg
+pagination renderSettings attributes toMsg state =
     let
         currentPage =
             Paginated.getCurrentPage state
@@ -90,49 +90,27 @@ pagination attributes toMsg state =
                 [ Html.a
                     (currentPageAttrs
                         ++ [ Attr.class "pagination-link"
-                           , E.onClick (toMsg (Paginated.setCurrentPage state page))
+                           , E.onClick (toMsg (Paginated.setCurrentPage page state))
                            ]
                     )
                     [ Html.text (String.fromInt page) ]
                 ]
 
-        start =
-            if currentPage > 3 then
-                [ pageButton 1
-                , ellipsisButton
-                ]
-
-            else
-                List.range 1 (currentPage + 1)
-                    |> List.map (\page -> pageButton page)
-
-        middle =
-            if currentPage > 3 && currentPage < pageCount - 2 then
-                [ pageButton (currentPage - 1)
-                , pageButton currentPage
-                , pageButton (currentPage + 1)
-                ]
-
-            else
-                []
-
-        end =
-            if currentPage < pageCount - 2 then
-                [ ellipsisButton
-                , pageButton pageCount
-                ]
-
-            else
-                List.range (currentPage - 2) pageCount
-                    |> List.map (\page -> pageButton page)
-
         buttons =
-            if pageCount <= 5 then
-                List.range 1 pageCount
-                    |> List.map (\page -> pageButton page)
+            List.range 1 pageCount
+                |> List.foldl
+                    (\page ( renderPrev, list ) ->
+                        if Paginated.renderPageButton renderSettings state page then
+                            ( True, list ++ [ pageButton page ] )
 
-            else
-                [ start, middle, end ] |> List.concat
+                        else if renderPrev then
+                            ( False, list ++ [ ellipsisButton ] )
+
+                        else
+                            ( False, list )
+                    )
+                    ( True, [] )
+                |> Tuple.second
     in
     Html.nav
         ([ Attr.class "pagination"
