@@ -40,7 +40,7 @@ jobs:
         run: yarn elm make
 
       - name: elm-format
-        run: yarn elm-format --validate src examples
+        run: yarn elm-format --validate src tests examples
 
       - run: yarn elm-review
 
