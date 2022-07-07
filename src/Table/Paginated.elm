@@ -11,7 +11,7 @@ module Table.Paginated exposing
     , Config, customConfig, Customizations, HtmlDetails, htmlDetails, Status(..)
     , defaultCustomizations
     , RenderSettings, renderPageButton
-    , getIsReversed
+    , getIsReversed, initialStateWithReversed
     )
 
 {-| Variant of Table for paginated remote data that is sorted before being given
@@ -107,6 +107,25 @@ type State
 
 {-| Create a table state. By providing a column name, you determine which
 column should be used for sorting by default, with isReversed == False corresponding to ascending sort.
+So if you want your table of yachts to be sorted by ascending length by default, you might say:
+
+    import Table
+
+    Table.initialState "Length" pageSize
+
+-}
+initialState : String -> Int -> State
+initialState sortColumn pageSize =
+    State
+        { currentPage = 1
+        , pageSize = pageSize
+        , total = 0
+        , sortColumn = sortColumn
+        , isReversed = False
+        }
+
+
+{-| Create a table state, with isReversed == False corresponding to ascending sort.
 So if you want your table of yachts to be sorted by descending length by default, you might say:
 
     import Table
@@ -114,8 +133,8 @@ So if you want your table of yachts to be sorted by descending length by default
     Table.initialState "Length" True pageSize
 
 -}
-initialState : String -> Bool -> Int -> State
-initialState sortColumn isReversed pageSize =
+initialStateWithReversed : String -> Bool -> Int -> State
+initialStateWithReversed sortColumn isReversed pageSize =
     State
         { currentPage = 1
         , pageSize = pageSize
