@@ -126,4 +126,15 @@ suite =
                             \_ -> Paginated.renderPageButton renderSettings state page |> Expect.equal expected
                     )
             )
+        , describe "construct with reverse ordered column"
+            (let
+                state =
+                    Paginated.initialStateDirected "id" True 5
+                        |> Paginated.setTotal 50
+                        |> Paginated.setCurrentPage 10
+             in
+             [ test "reverseConstruction" <|
+                \_ -> Paginated.getIsReversed state |> Expect.equal True
+             ]
+            )
         ]

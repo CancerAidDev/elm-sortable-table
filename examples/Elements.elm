@@ -37,7 +37,7 @@ init =
     let
         model =
             { elements = []
-            , tableState = PaginatedTable.initialState "atomic_number" 10
+            , tableState = PaginatedTable.initialStateDirected "atomic_number" True 10
             }
     in
     ( model, getElements model.tableState )

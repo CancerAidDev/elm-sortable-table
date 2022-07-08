@@ -1,8 +1,8 @@
 module Table.Paginated exposing
     ( view
     , config, stringColumn, intColumn, floatColumn, dateColumn, posixColumn
-    , State, initialState
-    , getSortColumn, getCurrentPage, setCurrentPage, getPageSize, setPageSize, setTotal, getPageCount
+    , State, initialState, initialStateDirected
+    , getSortColumn, getCurrentPage, setCurrentPage, getPageSize, setPageSize, setTotal, getPageCount, getIsReversed
     , nextPage, previousPage
     , SortOrder(..), sortOrder
     , Column, customColumn, veryCustomColumn, DateColumnConfig, PosixColumnConfig
@@ -41,8 +41,8 @@ We recommend checking out the [examples] to get a feel for how it works.
 
 # State
 
-@docs State, initialState
-@docs getSortColumn, getCurrentPage, setCurrentPage, getPageSize, setPageSize, setTotal, getPageCount
+@docs State, initialState, initialStateDirected
+@docs getSortColumn, getCurrentPage, setCurrentPage, getPageSize, setPageSize, setTotal, getPageCount, getIsReversed
 @docs nextPage, previousPage
 
 
@@ -105,8 +105,8 @@ type State
 
 
 {-| Create a table state. By providing a column name, you determine which
-column should be used for sorting by default. So if you want your table of
-yachts to be sorted by length by default, you might say:
+column should be used for sorting, defaulting to an ascending sort.
+So if you want your table of yachts to be sorted by length by default, you might say:
 
     import Table
 
@@ -121,6 +121,26 @@ initialState sortColumn pageSize =
         , total = 0
         , sortColumn = sortColumn
         , isReversed = False
+        }
+
+
+{-| Create a table state with the ability to specify the direction of sort on the specified column
+in the form of an isReversed Bool.
+For a descending sort on your table of yachts by length, use
+
+    import Table
+
+    Table.initialStateDirected "Length" True pageSize
+
+-}
+initialStateDirected : String -> Bool -> Int -> State
+initialStateDirected sortColumn isReversed pageSize =
+    State
+        { currentPage = 1
+        , pageSize = pageSize
+        , total = 0
+        , sortColumn = sortColumn
+        , isReversed = isReversed
         }
 
 
@@ -154,6 +174,13 @@ at one time).
 getPageSize : State -> Int
 getPageSize (State { pageSize }) =
     pageSize
+
+
+{-| Get whether the current sortable column is set to be sorted in ascending or descending order.
+-}
+getIsReversed : State -> Bool
+getIsReversed (State { isReversed }) =
+    isReversed
 
 
 {-| Set the page size.
