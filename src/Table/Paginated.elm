@@ -1,8 +1,8 @@
 module Table.Paginated exposing
     ( view
     , config, stringColumn, intColumn, floatColumn, dateColumn, posixColumn
-    , State, initialState
-    , getSortColumn, getCurrentPage, setCurrentPage, getPageSize, setPageSize, setTotal, getPageCount
+    , State, initialState, initialStateWithReversed
+    , getSortColumn, getCurrentPage, setCurrentPage, getPageSize, setPageSize, setTotal, getPageCount, getIsReversed
     , nextPage, previousPage
     , SortOrder(..), sortOrder
     , Column, customColumn, veryCustomColumn, DateColumnConfig, PosixColumnConfig
@@ -11,7 +11,6 @@ module Table.Paginated exposing
     , Config, customConfig, Customizations, HtmlDetails, htmlDetails, Status(..)
     , defaultCustomizations
     , RenderSettings, renderPageButton
-    , getIsReversed, initialStateWithReversed
     )
 
 {-| Variant of Table for paginated remote data that is sorted before being given
@@ -42,8 +41,8 @@ We recommend checking out the [examples] to get a feel for how it works.
 
 # State
 
-@docs State, initialState
-@docs getSortColumn, getCurrentPage, setCurrentPage, getPageSize, setPageSize, setTotal, getPageCount
+@docs State, initialState, initialStateWithReversed
+@docs getSortColumn, getCurrentPage, setCurrentPage, getPageSize, setPageSize, setTotal, getPageCount, getIsReversed
 @docs nextPage, previousPage
 
 
