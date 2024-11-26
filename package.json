@@ -19,6 +19,6 @@
     "sqlite3": "^5.1.7"
   },
   "resolutions": {
-    "cross-spawn": "^7.0.3"
+    "cross-spawn": "^7.0.6"
   }
 }
